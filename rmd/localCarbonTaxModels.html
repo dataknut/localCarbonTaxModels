@@ -268,7 +268,7 @@ div.tocify {
 <h1 class="title toc-ignore">Exploring local carbon tax models</h1>
 <h3 class="subtitle">Southampton as a case study</h3>
 <h4 class="author">Ben Anderson (<a href="mailto:b.anderson@soton.ac.uk">b.anderson@soton.ac.uk</a>, @dataknut) &amp; Abubakr Bahaj</h4>
-<h4 class="date">Last run at: 2020-08-06 22:35:17</h4>
+<h4 class="date">Last run at: 2020-08-06 23:15:30</h4>
 
 </div>
 
@@ -279,13 +279,13 @@ div.tocify {
 <p>Taxes are not just a way to generate revenue, they are also a means to incentivise 'good' things and dis-incentivise 'bad' things. Think tobacco &amp; alcohol duty, sugar taxes, vehicle emissions and so on. Local taxes on the other hand do not seem to follow the same approach. The <a href="https://www.local.gov.uk/topics/finance-and-business-rates/local-taxation-council-tax-and-business-rates">Council Tax</a>, of which local authorities keep 100%, doesn't really incentivise anything at all as it's based on a notional dwelling value. The same is true of business rates, based on the rental value of the property, of which local authorities keep 50% with some discussion of <a href="https://www.local.gov.uk/topics/finance-and-business-rates/business-rates-retention">making this 100%</a> in future.</p>
 <p>Interestingly council tax rates are set by local authorities within a 'referendable' threshold. A rise above that threshold triggers a local referendum. We return to this later.</p>
 <p>In the current 'climate emergency' both central and local governments are considering ways to force greenhouse gas emissions reductions through increased energy efficiency standards for new-builds and large scale investment in energy efficiency and low carbon heating retrofit. Some of this discussion has also focused on lobbying <a href="https://www.architectsjournal.co.uk/news/vat-chance-can-tax-reforms-spur-a-retrofit-renaissance">to remove the VAT due on retrofit</a> work on the basis that the exisiting approach can incentivise complete reconstruction, with increased embodied carbon emissions, rather than retrofit which generally (?) has less.</p>
-<p>In this paper we explore an extension of this concept by using the local tax system to incentivise dwelling owners to reduce their local tax charge by tying a new <code>local carbon tax</code> rate to the emissions 'band' of the dwelling. In this model the higher the emissions from the dwelling, the higher the local carbon tax levied.</p>
-<p>Clearly such an approach <em>could</em> simply replace the council tax and possibly also the business rates although we focus here on residential dwellings alone. However this would cause a significant inequity for tenants who <a href="https://www.gov.uk/council-tax/who-has-to-pay">currently pay council tax</a> but would be unable to make energy efficiency or low carbon energy investments in their home but still would have to pay whatever local carbon tax rate applied to the dwelling. We therefore propose two forms of local carbon tax, one that focuses on incentivising low carbon building structures and one which focuses on reducing emissiomns caused by the behaviour of the occupant themselves. Both will act to reduce emissions. We do this by:</p>
+<p>In this paper we explore an extension of this concept by using the local tax system to incentivise dwelling owners to reduce their local tax charge by tying a new <code>local carbon tax</code> rate to the emissions 'band' of the dwelling. In this model the higher the emissions attributable to the dwelling, the higher the local carbon tax levied.</p>
+<p>Clearly such an approach <em>could</em> simply replace the council tax and possibly also the business rates although we focus here on residential dwellings alone. However this would cause a significant inequity for tenants who <a href="https://www.gov.uk/council-tax/who-has-to-pay">currently pay council tax</a>, would be unable to make energy efficiency or low carbon energy investments in their home but would still have to pay whatever local carbon tax rate applied to the dwelling. We therefore propose two forms of local carbon tax, one that focuses on incentivising low carbon building structures and one which focuses on reducing emissiomns caused by the behaviour of the occupant themselves. Both will act to reduce emissions. We do this by:</p>
 <ul>
-<li>a local dwelling fabric carbon tax - paid by building (dwelling) owners based on some proxy for (or an actual calculation of) the total GHG emissions due to space heating;</li>
-<li>a local consumption carbon tax - paid by occupants based on an some proxyfor (or actual calculation of) the emissions due to total energy consumption less those due to space heating.</li>
+<li>a <code>local dwelling fabric carbon tax</code> - paid by building (dwelling) owners based on some proxy for (or an actual calculation of) the total GHG emissions due to space heating;</li>
+<li>a <code>local consumption carbon tax</code> - paid by occupants based on an some proxyfor (or actual calculation of) the emissions due to total energy consumption less those that 'should' be due to space heating. Obviously if an occupant over-heats the dwelling, they will then be paying more tax... and vice versa (yes?).</li>
 </ul>
-<p>This is an attmept to seperate the 'responsibility' of the dwelling owner for increasing the energy efficiency and reducing the emissions from the building fabric from the responsibility of the 'occupant' for the <em>as lived</em> emissions. In many cases these will be the same individual(s) but not in the case of tenants. It is regularly observed that dwellings built or retrofitted to apparently high energy efficienct standards show a performance gap when actually occupied largely due to occupant energy using and especially ventilation practices. The idea is to seperate these processes and use the parallel local carbon tax system to incentivise lower emissions from both.</p>
+<p>This is an attmept to seperate the 'responsibility' of the dwelling owner for increasing the energy efficiency and reducing the emissions due to the building fabric from the responsibility of the 'occupant' for the <em>as lived</em> emissions. In many cases these will be the same individual(s) but not in the case of tenants. It is regularly observed that dwellings built or retrofitted to apparently high energy efficienct standards show a performance gap when actually occupied largely due to occupant energy using and especially ventilation practices. The idea is to seperate these processes and use the parallel local carbon tax system to incentivise lower emissions from both.</p>
 <p>Of course we need to be careful. A goal of reducing dwelling fabric emissions could be met by switching to all-electric heating and buying electricity from a purely renewable retailer. You can then use as much energy as you can afford - there will be no additional fabric-based <em>or</em> occupant-based tax to pay. In this sense this could be an entirely avoidable tax. But maybe that is what we want... provided the grid can handle it.</p>
 <p>Naturally in the long run such a system is unsustainable. Just as vehicle excise linked to engine emissions will generate less and less revenue over time as engines become cleaner and cleaner, so we would hope that our local carbon taxes would also tend to zero. In this case local authorities would need to evolve the system in such a way as to preserve revenue while still maintaining downward pressure on dwelling based emissions. They could return to some other form of progressive local income tax for example.</p>
 <p>In the remainder of this paper we explore a number of ways of calculating both tax rates under a range of scenarios. These are:</p>
@@ -293,7 +293,12 @@ div.tocify {
 <li>revenue neutral - it generates the same revenue as the council tax did but puts downward pressure on emissons</li>
 <li>revenue positive - it generates more revenue than the council tax did so that the 'surplus' can be recycled into energy efficiency and/or low emissions heat interventions while also putting downward pressure on emissons</li>
 </ul>
-<p>An over-riding principle is that those at the lower end of the income distribution should be <em>no worse</em> off and preferably better off than they were under the council tax. This may be tricky to model given the council tax rebate system. However, since energy consumption as a percentage of total expenditure declines with income (poor people pay proportionally more) but absolute energy consumption and emissions increase with income, there is clear scope to use tax revenues collected from 'high' emitters to support low income emissions transitions. We could assume that higher income higher emitters would have the capital to address their emissions but this may not be the case. They may also have sufficient income to not to have to care about 'paying' for their emissions. The fact that the tax rate is not enmtirely correlated with ability to pay at an individual level means there may be little incentive for very high income households to change. In this case we may need an additional approach such as a 'stamp duty' * emissions multiplier that is paid on the sale of properties worth over a certain threshold. Clearly a very expensive house which has zero emissions (as above) would attract a zero tax charge. Again, this may be what we want.</p>
+<p>An over-riding principle is that those at the lower end of the income distribution should be <em>no worse</em> off and preferably better off than they were under the council tax. This may be tricky to model given the council tax rebate system. However, since energy consumption as a percentage of total expenditure declines with income (poor people pay proportionally more) but absolute energy consumption and emissions increase with income, there is clear scope to use tax revenues collected from 'high' emitters to support low income emissions transitions.</p>
+<p>We could assume that higher income higher emitters would have the capital to address their emissions but this may not be the case. They may also have sufficient income not to have to care about 'paying' for their emissions. The fact that the carbon tax rate is not entirely correlated with ability to pay at an individual level (inefficient homes running on fossil fuels are not only the preserve of the very rich) means there may be little incentive for very high income households to change. In this case we may need an additional approach such as a 'stamp duty' * emissions multiplier that is paid on the purchase of properties worth over a certain threshold. This would act to penalise those who had not bothered to invest since their purchasor would drive the price down (they would be about to take a tax hit). Clearly a very expensive house which has zero emissions (as above) would attract a zero tax charge. It might even significantly drive down the value of high emissions properties. Again, this may be what we want but if so it would significantly impact the asset values of people in larger, older and higher emissions homes - some of whom are not well off.</p>
+<p>Finally, making the tax charge a dwelling and household level charge means that there is an incentive to increase occupant density since the cost is shared. We know that economies of scale are substantial for energy - the amount of energy used does not increase linearly with occupancy. Reducing single occupancy and incentivising multi-occupancy homes therefore decreases per capita emissions and also decreases total emissions. This could be a potential positive spill-over effect of the system we propose and <em>might</em> align with the Governments proposed changes to the permitted development rights provided they are used to increase occupancy and not just increase unoccupied but heated space!</p>
+<blockquote>
+<p>NB: on vs off gas implications? Off gas = rural so usually oil. What about wood?</p>
+</blockquote>
 </div>
 <div id="modelling-the-tax" class="section level1">
 <h1><span class="header-section-number">2</span> Modelling the tax</h1>
@@ -311,7 +316,7 @@ div.tocify {
 <p>However there are a number of ways of getting close:</p>
 <ul>
 <li>EPC data: provides an estimate of kWh/m2 (a measure of energy input) and CO2e as a basis for the EPC banding. We could use the kWh/m2 value but this reduce the chatrge for large houses with big emissions sinply due to size. We do not want that since it is the absolute value of emissions that really matters here. So we would use the kWh value instead. There are <a href="https://www.passivhaustrust.org.uk/guidance_detail.php?gId=44">a number of reasons</a> why we would <em>not</em> want to use the CO2e or EPC banding as the basis for our calculation, not least that it assumes a fixed and outdated carbon intensity for electricity. Unfortunately EPC data does not tell us about actual occupant-driven energy consumption. This would have to be estimated on the basis of very few sensible co-variates.</li>
-<li>SAVE data: this smaple of 4,000+ households from the Solent region has neither EPC or gas consumption data</li>
+<li>SAVE data: this sample of 4,000+ households from the Solent region has neither EPC or gas consumption data</li>
 <li>NEED anonymised sample data: XX check XX</li>
 <li>SERL smart meter data: this has all (or nearly all) of the attributes we need but 1) is for a sample of the population and 2) will not have complete EPC data since dwellings that are not rented or have not been recently sold will tend not to have an EPC.</li>
 </ul>
@@ -330,18 +335,38 @@ div.tocify {
 </div>
 <div id="could-this-be-done" class="section level1">
 <h1><span class="header-section-number">3</span> Could this be done?</h1>
-<p>We have no idea really. As we understand it local authorities can set council tax rates to 0 without triggering a referendum! But can they create a new local tax system of the kind we propose? Would it need new legislation? Or could it be created from a process that already exists? And if they then had to resurrect the Concil Tax to recover declining carbon tax revenue, would that automaticallly trigger a referendum?!</p>
+<div id="politically" class="section level2">
+<h2><span class="header-section-number">3.1</span> Politically?</h2>
+<p>As we understand it local authorities can set council tax rates to 0 without triggering a referendum! But can they create a new local tax system of the kind we propose to replace it? Would it need new legislation? Or could it be created from a process that already exists? And if they then had to resurrect the Concil Tax to recover declining carbon tax revenue, would that automaticallly trigger a referendum?!</p>
 <p>Perhaps more interestingly if a strongly 'green' local authority put a local tax system based on this approach to a local referendum with clear calculations of its effects for different social groups, would it be approved? From a purely rational self-interest persepctive it should if the majority would be better off because the bulk of the tax charge might fall on the higher emitters...</p>
+</div>
+<div id="practically" class="section level2">
+<h2><span class="header-section-number">3.2</span> Practically?</h2>
+<p>How would a local authority collect the data it needs at the dwelling level? Could it:</p>
+<ul>
+<li>mandate full EPCs on all dwellings? Or charge a penalising rate to those that do not have them (they are not expensive to procure)</li>
+<li>model likely consumption levels &amp; emissions for each dwelling and so incentivise those whose emissons are actually lower to agree to the annual energy consumption being collected from their smart meters? But what to do about those who are higher?</li>
+<li>mandate the collection of annual energy input data from the smart meter system for all dwellings, in much the same way that it is mandatory to declare income for tax purposes? The smart meter data includes tariff (XX check XX) and so carbon intensity (XX check XX)</li>
+</ul>
+</div>
 </div>
 <div id="should-this-be-done" class="section level1">
 <h1><span class="header-section-number">4</span> Should this be done?</h1>
 <p>Why not?</p>
+</div>
+<div id="playing-games" class="section level1">
+<h1><span class="header-section-number">5</span> Playing games</h1>
+<p>Inevitably any system that can be gamed for gain will be. Examples might include:</p>
+<ul>
+<li>?</li>
+</ul>
+<p>We would need to think carefully how to structure the system to avoid this.</p>
 
 </div>
 <div id="r-environment" class="section level1">
-<h1><span class="header-section-number">5</span> R environment</h1>
+<h1><span class="header-section-number">6</span> R environment</h1>
 <div id="r-packages-used" class="section level2">
-<h2><span class="header-section-number">5.1</span> R packages used</h2>
+<h2><span class="header-section-number">6.1</span> R packages used</h2>
 <ul>
 <li>base R <span class="citation">(R Core Team 2016)</span></li>
 <li>bookdown <span class="citation">(Xie 2018)</span></li>
@@ -354,7 +379,7 @@ div.tocify {
 </ul>
 </div>
 <div id="session-info" class="section level2">
-<h2><span class="header-section-number">5.2</span> Session info</h2>
+<h2><span class="header-section-number">6.2</span> Session info</h2>
 </div>
 </div>
 <div id="references" class="section level1 unnumbered">

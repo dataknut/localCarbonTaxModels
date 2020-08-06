@@ -4,6 +4,12 @@ subtitle: "Southampton as a case study"
 author: 'Ben Anderson (b.anderson@soton.ac.uk, \@dataknut) & Abubakr Bahaj'
 date: 'Last run at: `r Sys.time()`'
 output:
+  bookdown::word_document2:
+    fig_caption: yes
+    number_sections: yes
+    toc: yes
+    toc_depth: 2
+    fig_width: 5
   bookdown::pdf_document2:
     fig_caption: yes
     number_sections: yes
@@ -17,12 +23,6 @@ output:
     toc: yes
     toc_depth: 2
     toc_float: TRUE
-  bookdown::word_document2:
-    fig_caption: yes
-    number_sections: yes
-    toc: yes
-    toc_depth: 2
-    fig_width: 5
 bibliography: '`r path.expand("~/bibliography.bib")`'
 ---
 
