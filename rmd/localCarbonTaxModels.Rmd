@@ -1,9 +1,17 @@
 ---
 title: "Exploring local carbon tax models"
 subtitle: "Southampton as a case study"
-author: 'Ben Anderson (b.anderson@soton.ac.uk, \@dataknut) & Abubakr Bahaj'
+author: 'Ben Anderson (b.anderson@soton.ac.uk), Abubakr Bahaj & Tom Rushby'
 date: 'Last run at: `r Sys.time()`'
 output:
+  bookdown::html_document2:
+    self_contained: no
+    fig_caption: yes
+    code_folding: hide
+    number_sections: yes
+    toc: yes
+    toc_depth: 2
+    toc_float: TRUE
   bookdown::word_document2:
     fig_caption: yes
     number_sections: yes
@@ -15,14 +23,6 @@ output:
     number_sections: yes
     toc: yes
     toc_depth: 2
-  bookdown::html_document2:
-    self_contained: no
-    fig_caption: yes
-    code_folding: hide
-    number_sections: yes
-    toc: yes
-    toc_depth: 2
-    toc_float: TRUE
 bibliography: '`r path.expand("~/bibliography.bib")`'
 ---
 
