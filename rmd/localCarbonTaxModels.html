@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Ben Anderson (b.anderson@soton.ac.uk, @dataknut) &amp; Abubakr Bahaj" />
+
+
+<title>Exploring local carbon tax models</title>
+
+<script src="localCarbonTaxModels_files/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="localCarbonTaxModels_files/bootstrap-3.3.5/css/bootstrap.min.css" rel="stylesheet" />
+<script src="localCarbonTaxModels_files/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="localCarbonTaxModels_files/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="localCarbonTaxModels_files/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="localCarbonTaxModels_files/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="localCarbonTaxModels_files/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="localCarbonTaxModels_files/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="localCarbonTaxModels_files/navigation-1.1/tabsets.js"></script>
+<script src="localCarbonTaxModels_files/navigation-1.1/codefolding.js"></script>
+<link href="localCarbonTaxModels_files/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="localCarbonTaxModels_files/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+</style>
+
+
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "&#xe258;";
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row-fluid">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="fluid-row" id="header">
+
+<div class="btn-group pull-right">
+<button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">Exploring local carbon tax models</h1>
+<h3 class="subtitle">Southampton as a case study</h3>
+<h4 class="author">Ben Anderson (<a href="mailto:b.anderson@soton.ac.uk">b.anderson@soton.ac.uk</a>, @dataknut) &amp; Abubakr Bahaj</h4>
+<h4 class="date">Last run at: 2020-08-06 22:35:17</h4>
+
+</div>
+
+
+
+<div id="introduction" class="section level1">
+<h1><span class="header-section-number">1</span> Introduction</h1>
+<p>Taxes are not just a way to generate revenue, they are also a means to incentivise 'good' things and dis-incentivise 'bad' things. Think tobacco &amp; alcohol duty, sugar taxes, vehicle emissions and so on. Local taxes on the other hand do not seem to follow the same approach. The <a href="https://www.local.gov.uk/topics/finance-and-business-rates/local-taxation-council-tax-and-business-rates">Council Tax</a>, of which local authorities keep 100%, doesn't really incentivise anything at all as it's based on a notional dwelling value. The same is true of business rates, based on the rental value of the property, of which local authorities keep 50% with some discussion of <a href="https://www.local.gov.uk/topics/finance-and-business-rates/business-rates-retention">making this 100%</a> in future.</p>
+<p>Interestingly council tax rates are set by local authorities within a 'referendable' threshold. A rise above that threshold triggers a local referendum. We return to this later.</p>
+<p>In the current 'climate emergency' both central and local governments are considering ways to force greenhouse gas emissions reductions through increased energy efficiency standards for new-builds and large scale investment in energy efficiency and low carbon heating retrofit. Some of this discussion has also focused on lobbying <a href="https://www.architectsjournal.co.uk/news/vat-chance-can-tax-reforms-spur-a-retrofit-renaissance">to remove the VAT due on retrofit</a> work on the basis that the exisiting approach can incentivise complete reconstruction, with increased embodied carbon emissions, rather than retrofit which generally (?) has less.</p>
+<p>In this paper we explore an extension of this concept by using the local tax system to incentivise dwelling owners to reduce their local tax charge by tying a new <code>local carbon tax</code> rate to the emissions 'band' of the dwelling. In this model the higher the emissions from the dwelling, the higher the local carbon tax levied.</p>
+<p>Clearly such an approach <em>could</em> simply replace the council tax and possibly also the business rates although we focus here on residential dwellings alone. However this would cause a significant inequity for tenants who <a href="https://www.gov.uk/council-tax/who-has-to-pay">currently pay council tax</a> but would be unable to make energy efficiency or low carbon energy investments in their home but still would have to pay whatever local carbon tax rate applied to the dwelling. We therefore propose two forms of local carbon tax, one that focuses on incentivising low carbon building structures and one which focuses on reducing emissiomns caused by the behaviour of the occupant themselves. Both will act to reduce emissions. We do this by:</p>
+<ul>
+<li>a local dwelling fabric carbon tax - paid by building (dwelling) owners based on some proxy for (or an actual calculation of) the total GHG emissions due to space heating;</li>
+<li>a local consumption carbon tax - paid by occupants based on an some proxyfor (or actual calculation of) the emissions due to total energy consumption less those due to space heating.</li>
+</ul>
+<p>This is an attmept to seperate the 'responsibility' of the dwelling owner for increasing the energy efficiency and reducing the emissions from the building fabric from the responsibility of the 'occupant' for the <em>as lived</em> emissions. In many cases these will be the same individual(s) but not in the case of tenants. It is regularly observed that dwellings built or retrofitted to apparently high energy efficienct standards show a performance gap when actually occupied largely due to occupant energy using and especially ventilation practices. The idea is to seperate these processes and use the parallel local carbon tax system to incentivise lower emissions from both.</p>
+<p>Of course we need to be careful. A goal of reducing dwelling fabric emissions could be met by switching to all-electric heating and buying electricity from a purely renewable retailer. You can then use as much energy as you can afford - there will be no additional fabric-based <em>or</em> occupant-based tax to pay. In this sense this could be an entirely avoidable tax. But maybe that is what we want... provided the grid can handle it.</p>
+<p>Naturally in the long run such a system is unsustainable. Just as vehicle excise linked to engine emissions will generate less and less revenue over time as engines become cleaner and cleaner, so we would hope that our local carbon taxes would also tend to zero. In this case local authorities would need to evolve the system in such a way as to preserve revenue while still maintaining downward pressure on dwelling based emissions. They could return to some other form of progressive local income tax for example.</p>
+<p>In the remainder of this paper we explore a number of ways of calculating both tax rates under a range of scenarios. These are:</p>
+<ul>
+<li>revenue neutral - it generates the same revenue as the council tax did but puts downward pressure on emissons</li>
+<li>revenue positive - it generates more revenue than the council tax did so that the 'surplus' can be recycled into energy efficiency and/or low emissions heat interventions while also putting downward pressure on emissons</li>
+</ul>
+<p>An over-riding principle is that those at the lower end of the income distribution should be <em>no worse</em> off and preferably better off than they were under the council tax. This may be tricky to model given the council tax rebate system. However, since energy consumption as a percentage of total expenditure declines with income (poor people pay proportionally more) but absolute energy consumption and emissions increase with income, there is clear scope to use tax revenues collected from 'high' emitters to support low income emissions transitions. We could assume that higher income higher emitters would have the capital to address their emissions but this may not be the case. They may also have sufficient income to not to have to care about 'paying' for their emissions. The fact that the tax rate is not enmtirely correlated with ability to pay at an individual level means there may be little incentive for very high income households to change. In this case we may need an additional approach such as a 'stamp duty' * emissions multiplier that is paid on the sale of properties worth over a certain threshold. Clearly a very expensive house which has zero emissions (as above) would attract a zero tax charge. Again, this may be what we want.</p>
+</div>
+<div id="modelling-the-tax" class="section level1">
+<h1><span class="header-section-number">2</span> Modelling the tax</h1>
+<p>In order to explore the revenue and tax load implications of these ideas we ideally need a dataset which links:</p>
+<ul>
+<li>current council tax paid</li>
+<li>estimated or actual annual space heating energy input, cost and emissions. Issues: identifying actual emissons from electricity depends on retailer &amp; tariff; same for gas (e.g. green gas/biomethane offerings)</li>
+<li>estimated or actual annual non-space heating energy input, cost and emissions. Issues: as above?</li>
+<li>household income</li>
+<li>household demographics (as the council tax rebate of 25% appiles to single adult households)</li>
+<li>benefits status (?)</li>
+</ul>
+<p>for each dwelling in all local authorities. We could then calculate the council and carbon tax charges per dwelling and see what happens under our different scenarios.</p>
+<p>Unfortunately no such dataset exists.</p>
+<p>However there are a number of ways of getting close:</p>
+<ul>
+<li>EPC data: provides an estimate of kWh/m2 (a measure of energy input) and CO2e as a basis for the EPC banding. We could use the kWh/m2 value but this reduce the chatrge for large houses with big emissions sinply due to size. We do not want that since it is the absolute value of emissions that really matters here. So we would use the kWh value instead. There are <a href="https://www.passivhaustrust.org.uk/guidance_detail.php?gId=44">a number of reasons</a> why we would <em>not</em> want to use the CO2e or EPC banding as the basis for our calculation, not least that it assumes a fixed and outdated carbon intensity for electricity. Unfortunately EPC data does not tell us about actual occupant-driven energy consumption. This would have to be estimated on the basis of very few sensible co-variates.</li>
+<li>SAVE data: this smaple of 4,000+ households from the Solent region has neither EPC or gas consumption data</li>
+<li>NEED anonymised sample data: XX check XX</li>
+<li>SERL smart meter data: this has all (or nearly all) of the attributes we need but 1) is for a sample of the population and 2) will not have complete EPC data since dwellings that are not rented or have not been recently sold will tend not to have an EPC.</li>
+</ul>
+<div id="epc-based-models" class="section level2">
+<h2><span class="header-section-number">2.1</span> EPC-based models</h2>
+</div>
+<div id="need-based-models" class="section level2">
+<h2><span class="header-section-number">2.2</span> NEED-based models</h2>
+</div>
+<div id="serl-baswed-models" class="section level2">
+<h2><span class="header-section-number">2.3</span> SERL-baswed models</h2>
+</div>
+<div id="summary" class="section level2">
+<h2><span class="header-section-number">2.4</span> Summary</h2>
+</div>
+</div>
+<div id="could-this-be-done" class="section level1">
+<h1><span class="header-section-number">3</span> Could this be done?</h1>
+<p>We have no idea really. As we understand it local authorities can set council tax rates to 0 without triggering a referendum! But can they create a new local tax system of the kind we propose? Would it need new legislation? Or could it be created from a process that already exists? And if they then had to resurrect the Concil Tax to recover declining carbon tax revenue, would that automaticallly trigger a referendum?!</p>
+<p>Perhaps more interestingly if a strongly 'green' local authority put a local tax system based on this approach to a local referendum with clear calculations of its effects for different social groups, would it be approved? From a purely rational self-interest persepctive it should if the majority would be better off because the bulk of the tax charge might fall on the higher emitters...</p>
+</div>
+<div id="should-this-be-done" class="section level1">
+<h1><span class="header-section-number">4</span> Should this be done?</h1>
+<p>Why not?</p>
+
+</div>
+<div id="r-environment" class="section level1">
+<h1><span class="header-section-number">5</span> R environment</h1>
+<div id="r-packages-used" class="section level2">
+<h2><span class="header-section-number">5.1</span> R packages used</h2>
+<ul>
+<li>base R <span class="citation">(R Core Team 2016)</span></li>
+<li>bookdown <span class="citation">(Xie 2018)</span></li>
+<li>data.table <span class="citation">(Dowle et al. 2015)</span></li>
+<li>ggplot2 <span class="citation">(Wickham 2009)</span></li>
+<li>kableExtra <span class="citation">(Zhu 2019)</span></li>
+<li>knitr <span class="citation">(Xie 2016)</span></li>
+<li>rmarkdown <span class="citation">(Allaire et al. 2020)</span></li>
+<li>skimr <span class="citation">(Arino de la Rubia et al. 2017)</span></li>
+</ul>
+</div>
+<div id="session-info" class="section level2">
+<h2><span class="header-section-number">5.2</span> Session info</h2>
+</div>
+</div>
+<div id="references" class="section level1 unnumbered">
+<h1>References</h1>
+<div id="refs" class="references">
+<div id="ref-rmarkdown">
+<p>Allaire, JJ, Yihui Xie, Jonathan McPherson, Javier Luraschi, Kevin Ushey, Aron Atkins, Hadley Wickham, Joe Cheng, Winston Chang, and Richard Iannone. 2020. <em>Rmarkdown: Dynamic Documents for R</em>. <a href="https://github.com/rstudio/rmarkdown" class="uri">https://github.com/rstudio/rmarkdown</a>.</p>
+</div>
+<div id="ref-skimr">
+<p>Arino de la Rubia, Eduardo, Hao Zhu, Shannon Ellis, Elin Waring, and Michael Quinn. 2017. <em>Skimr: Skimr</em>. <a href="https://github.com/ropenscilabs/skimr" class="uri">https://github.com/ropenscilabs/skimr</a>.</p>
+</div>
+<div id="ref-data.table">
+<p>Dowle, M, A Srinivasan, T Short, S Lianoglou with contributions from R Saporta, and E Antonyan. 2015. <em>Data.table: Extension of Data.frame</em>. <a href="https://CRAN.R-project.org/package=data.table" class="uri">https://CRAN.R-project.org/package=data.table</a>.</p>
+</div>
+<div id="ref-baseR">
+<p>R Core Team. 2016. <em>R: A Language and Environment for Statistical Computing</em>. Vienna, Austria: R Foundation for Statistical Computing. <a href="https://www.R-project.org/" class="uri">https://www.R-project.org/</a>.</p>
+</div>
+<div id="ref-ggplot2">
+<p>Wickham, Hadley. 2009. <em>Ggplot2: Elegant Graphics for Data Analysis</em>. Springer-Verlag New York. <a href="http://ggplot2.org" class="uri">http://ggplot2.org</a>.</p>
+</div>
+<div id="ref-knitr">
+<p>Xie, Yihui. 2016. <em>Knitr: A General-Purpose Package for Dynamic Report Generation in R</em>. <a href="https://CRAN.R-project.org/package=knitr" class="uri">https://CRAN.R-project.org/package=knitr</a>.</p>
+</div>
+<div id="ref-bookdown">
+<p>———. 2018. <em>Bookdown: Authoring Books and Technical Documents with R Markdown</em>. <a href="https://github.com/rstudio/bookdown" class="uri">https://github.com/rstudio/bookdown</a>.</p>
+</div>
+<div id="ref-kableExtra">
+<p>Zhu, Hao. 2019. <em>KableExtra: Construct Complex Table with ’Kable’ and Pipe Syntax</em>. <a href="https://CRAN.R-project.org/package=kableExtra" class="uri">https://CRAN.R-project.org/package=kableExtra</a>.</p>
+</div>
+</div>
+</div>
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open')
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("hide" === "show");
+});
+</script>
+
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
