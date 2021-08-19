@@ -36,10 +36,6 @@ knitr::opts_chunk$set(warning = FALSE)
 # Introduction
 
 ```{r rmdSetup, include=FALSE}
-# Explore HESA 'estates' data 
-# Source: https://www.hesa.ac.uk/data-and-analysis/estates/
-
-# NB: covers scope 1 & 2 emissions and _some_ scope 3
 
 # Notes to self ----
 # Rmd designed for latex to pdf
@@ -115,7 +111,7 @@ Unfortunately no such dataset exists.
 
 However there are a number of ways of getting close:
 
- * EPC data: provides an estimate of kWh/m2 (a measure of energy input) and CO2e as a basis for the EPC banding. We could use the kWh/m2 value but this reduce the chatrge for large houses with big emissions sinply due to size. We do not want that since it is the absolute value of emissions that really matters here. So we would use the kWh value instead. There are [a number of reasons](https://www.passivhaustrust.org.uk/guidance_detail.php?gId=44) why we would _not_ want to use the CO2e or EPC banding as the basis for our calculation, not least that it assumes a fixed and outdated carbon intensity for electricity. Unfortunately EPC data does not tell us about actual occupant-driven energy consumption. This would have to be estimated on the basis of very few sensible co-variates.
+ * EPC data: provides an estimate of kWh/m2 (a measure of energy input) and CO2e as a basis for the EPC banding. We could use the kWh/m2 value but this reduce the charge for large houses with big emissions simply due to size. We do not want that since it is the absolute value of emissions that really matters here. So we would use the kWh value instead. There are [a number of reasons](https://www.passivhaustrust.org.uk/guidance_detail.php?gId=44) why we would _not_ want to use the CO2e or EPC banding as the basis for our calculation, not least that it assumes a fixed and outdated carbon intensity for electricity. Unfortunately EPC data does not tell us about actual occupant-driven energy consumption. This would have to be estimated on the basis of very few sensible co-variates. EPCs are also only available on dwellings that have been sold since XXX or are currently rented. This excludes a sub-set of properties which are probably older and less energy efficient.
  * SAVE data: this sample of 4,000+ households from the Solent region has neither EPC or gas consumption data
  * NEED anonymised sample data: XX check XX
  * SERL smart meter data: this has all (or nearly all) of the attributes we need but 1) is for a sample of the population and 2) will not have complete EPC data since dwellings that are not rented or have not been recently sold will tend not to have an EPC.
@@ -124,7 +120,7 @@ However there are a number of ways of getting close:
 
 ## NEED-based models
 
-## SERL-baswed models
+## SERL-based models
 
 ## Summary
 
