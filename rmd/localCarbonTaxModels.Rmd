@@ -37,28 +37,27 @@ knitr::opts_chunk$set(warning = FALSE)
 
 ```{r rmdSetup, include=FALSE}
 
-# Notes to self ----
-# Rmd designed for latex to pdf
-# Tables will _not_ print in html
-
 # Libraries ----
-library(data.table)
-library(ggplot2)
-library(here)
-library(skimr)
-library(kableExtra)
+myLibs <- c("tidyverse", # load first so that data.table masks (we only use tidyverse in one context - to filter sf)
+            "data.table",
+          "flextable",
+          "ggplot2",
+          "here",
+          "leaflet",
+          "skimr",
+          "sf",
+          "viridisLite")
 
 library(dkUtils)
+dkUtils::loadLibraries(myLibs)
 
 # Parameters ----
 
-localParams <- list()
+rmdParams <- list()
 
 # Functions ----
 
-tidyNum <- function(number) {
-  format(number, big.mark=",", scientific=FALSE)
-}
+source(here::here("R", "functions.R"))
 
 ```
 
@@ -118,9 +117,26 @@ However there are a number of ways of getting close:
 
 ## EPC-based models
 
+Partial coverage, no household attributes so no distributional analysis
+
 ## NEED-based models
 
+?
+
 ## SERL-based models
+
+Data: https://beta.ukdataservice.ac.uk/datacatalogue/studies/study?id=8666#!/documentation
+
+No income just has proxies:
+
+ * Household level:
+   * C3: Thinking about the working situation of each member of your household aged 16 and over, including you, how many would you say fall into each category below?
+   * C4: Including you, how many people in your household hold a degree (e.g. BA, BSc) or higher qualification (e.g. MA, PhD, PGCE)?
+ * Individual respondent:
+   * D3: Which best describes your current employment
+situation?
+   * D4: How well would you say you yourself are managing financially these days? Would you say you are ...
+
 
 ## Summary
 
@@ -154,6 +170,404 @@ We would need to think carefully how to structure the system to avoid this.
 
 \newpage
 
+# Background data and boundary files
+We will use a number of datasets to analyse the patterns of emissions. Some of these are in the repo as they are public access, others are not (or too large).
+
+## Boundaries
+
+MSOA - use pre-created boundary files
+
+```{r loadMSOA}
+
+message ("Loading Solent MSOA boundaries from file")
+boundaries <- list()
+boundaries$msoa_solent <- sf::read_sf(here::here("data", "boundaries", "MSOA", "msoa_solent.shp"))
+message("Rows of data: ", nrow(boundaries$msoa_solent))
+
+message("Selecting Southampton")
+# can't use function as sf not a data.table
+boundaries$msoa_soton <- filter(boundaries$msoa_solent, LAD11NM == "Southampton")
+message("Rows of data: ", nrow(boundaries$msoa_soton))
+```
+
+Check with a map...
+
+```{r simpleMSOAMap, fig.cap = "MSOA check map (shows MSOA and LA names when clicked"}
+
+st_coord_sys <- sf::st_crs(boundaries$msoa_soton) # check coord system
+message("Boundary data co-ord system: ", st_coord_sys$epsg)
+# if required transform current coord system to EPSG: 4326 (is what leaflet wants - good)
+if(st_coord_sys$epsg != 4326){
+ boundaries$msoa_soton_leaflet <- st_transform(boundaries$msoa_soton, "+proj=longlat +datum=WGS84")
+}
+
+
+leaflet(boundaries$msoa_soton_leaflet) %>%
+  addTiles() %>%  # Add default OpenStreetMap map tiles
+  addPolygons(fillOpacity = 0.2, 
+              weight = 1.5, 
+              popup = ~(paste0("MSOA: " ,MSOA11NM,
+                      "<br> LA: ", LAD11NM)
+                      ), # popups clicked
+              highlight = highlightOptions(
+                weight = 5,
+                color = "#666",
+                fillOpacity = 0.7,
+                bringToFront = TRUE))
+
+```
+
+LSOA
+
+```{r loadLSOA}
+message ("Loading Solent LSOA boundaries from file")
+boundaries <- list()
+boundaries$lsoa_solent <- sf::read_sf(here::here("data", "boundaries", "LSOA", "lsoa_solent.shp"))
+message("Rows of data: ", nrow(boundaries$lsoa_solent))
+
+message("Loading LSOA look-up table with useful labels")
+data <- list()
+data$lsoa_lookup <- data.table::fread(here::here("data", "LSOA_lookup_solent.csv.gz"))
+
+message("Selecting Southampton")
+# can't use function as sf not a data.table
+boundaries$lsoa_soton <- filter(boundaries$lsoa_solent, LAD11NM == "Southampton")
+message("Rows of data: ", nrow(boundaries$lsoa_soton))
+```
+
+Check with a map...
+
+```{r simpleLSOAMap, fig.cap = "LSOA check map (shows LSOA, MSOA and ward names when clicked"}
+
+st_coord_sys <- sf::st_crs(boundaries$lsoa_soton) # check coord system
+message("Boundary data co-ord system: ", st_coord_sys$epsg)
+# if required transform current coord system to EPSG: 4326 (is what leaflet wants - good)
+if(st_coord_sys$epsg != 4326){
+ boundaries$lsoa_soton_leaflet <- st_transform(boundaries$lsoa_soton, "+proj=longlat +datum=WGS84")
+}
+
+boundaries$lsoa_soton_leaflet <- merge(boundaries$lsoa_soton_leaflet, data$lsoa_lookup[, .(LSOA11CD, WD20CD, WD20NM)],
+                                       by = "LSOA11CD")
+
+leaflet(boundaries$lsoa_soton_leaflet) %>%
+  addTiles() %>%  # Add default OpenStreetMap map tiles
+  addPolygons(fillOpacity = 0.2, 
+              weight = 1.5, 
+              popup = ~(paste0("LSOA: ",LSOA11NM,
+                               "<br> MSOA: " , MSOA11NM,
+                               "<br> Ward: ", WD20NM,
+                               "<br> LA: ", LAD11NM)
+                      ), # popups clicked
+              highlight = highlightOptions(
+                weight = 5,
+                color = "#666",
+                fillOpacity = 0.7,
+                bringToFront = TRUE))
+
+```
+
+
+## IMD 2019
+
+Labeled as 2019 but actually 2018 data. Source: https://www.gov.uk/government/statistics/english-indices-of-deprivation-2019
+
+```{r loadIMD2019}
+data$lsoa_imd2019 <- data.table::fread(here::here("data", "LSOA_Indices_of_Multiple_Deprivation_2019.csv.gz")
+                                  )
+data$lsoa_imd2019[, LAD11NM := LADnm]
+data$lsoa_imd2019[, IMD_Decile_label := ifelse(IMD_Decile == 1, "1 (10% most deprived)",IMD_Decile)]
+data$lsoa_imd2019[, IMD_Decile_label := ifelse(IMD_Decile == 10, "10 (10% least deprived)",IMD_Decile_label)]
+
+data$lsoa_imd2019[, IMD_Decile_label := factor(IMD_Decile_label, levels = c("1 (10% most deprived)","2","3","4","5","6","7","8","9","10 (10% least deprived)"))]
+table(data$lsoa_imd2019$IMD_Decile_label)                               
+
+data$lsoa_imd2019_soton <- getSoton(data$lsoa_imd2019)
+nrow(data$lsoa_imd2019_soton)
+```
+
+These are LSOA level deprivation indices. Decile is the English & Welsh decile:
+
+ * 1 = 10% most deprived LSOAs in England & Wales;
+ * 10 = 10% least deprived LSOA in England & Wales.
+
+```{r imdLSOAMap, fig.cap = "LSOA IMD map (shows LSOA, MSOA, ward names and IMD decile when clicked"}
+
+boundaries$lsoa_soton_leaflet <- merge(boundaries$lsoa_soton_leaflet, data$lsoa_imd2019_soton[, .(LSOA11CD= lsoa11cd, IMDScore, IMD_Decile,IMD_Decile_label)],
+                                       by = "LSOA11CD")
+
+colCats <- colorNumeric("Reds", boundaries$lsoa_soton_leaflet$IMDScore, n = 9)
+
+leaflet(boundaries$lsoa_soton_leaflet) %>%
+  addTiles() %>%  # Add default OpenStreetMap map tiles
+  addPolygons(color = ~colCats(IMDScore),
+              fillOpacity = 0.6, 
+              weight = 1.5, 
+              popup = ~(paste0("LSOA: ",LSOA11NM,
+                               "<br> MSOA: " , MSOA11NM,
+                               "<br> Ward: ", WD20NM,
+                               "<br> LA: ", LAD11NM,
+                               "<br> IMD decile: ",IMD_Decile )
+                      ), # popups clicked
+              highlight = highlightOptions(
+                weight = 5,
+                color = "#666",
+                fillOpacity = 0.8,
+                bringToFront = TRUE))
+
+```
+
+## CREDS place-based emmissions estimates
+
+See https://www.creds.ac.uk/why-we-built-a-place-based-carbon-calculator/
+
+"The highest carbon areas have an average per person footprint more than eight times larger than the lowest carbon areas."
+
+"We are not effectively targeting decarbonisation policies in high carbon areas. For example, the recently collapsed Green Homes Grants scheme provided a grant to cover 66% of the cost (up to £5,000) of retrofitting homes.  For people claiming certain benefits, the cap was raised to 100% and £10,000. But the calculator shows that the big polluters are the large homes in very wealthy areas. In these neighbourhoods, the issue is not affordability but motivation. For high income households, energy costs are a small proportion of their expenditure and so the cost savings for retrofitting their home are inconsequential. As there are no policy “sticks” to incentivise action in the collective interest it is unsurprising that high carbon neighbourhoods have not prioritised decarbonisation."
+
+Source: https://www.carbon.place/
+
+Notes:
+
+ * Emissions are presented as per capita...
+ * Appears to be based on residential/citizen emissions only - does not appear to include commercial/manufacturing/land use etc
+
+```{r loadCREDSpbcc}
+data$lsoa_creds_pbcc <- data.table::fread(here::here("data", "LSOA_CREDS_PBCC_data.csv.gz"))
+# % of total emissions due to gas & elec
+data$lsoa_creds_pbcc[, energy_pc := 100*((elec_percap_2018 + gas_percap_2018)/total_kgco2e_percap)]
+# % of household (spaces?) with mainly elec
+data$lsoa_creds_pbcc[, pc_Heating_Electric := 100*(pHeating_Electric/(pHeating_None + pHeating_Gas + pHeating_Electric + pHeating_Oil + pHeating_Solid+ pHeating_Other))]
+
+#summary(data$lsoa_creds_pbcc$pc_Heating_Electric)
+```
+
+```{r credsLSOAMap, fig.cap = "LSOA CREDS total emissions per capita map (shows LSOA, MSOA, ward names and emissions per capita (T CO2e) when clicked"}
+
+
+  
+# make a temporary sf dataFrame holding just the bits we want
+map_sf <- merge(boundaries$lsoa_soton_leaflet, 
+                                       data$lsoa_creds_pbcc[, .(LSOA11CD = LSOA11, 
+                                                                CREDStotal_kgco2e_percap = total_kgco2e_percap,
+                                                                CREDSgas_percap_2018 = gas_percap_2018,
+                                                                CREDSelec_percap_2018 = elec_percap_2018,
+                                                                energy_pc, pc_Heating_Electric)],
+                                       by = "LSOA11CD")
+
+colCats <- colorNumeric("Reds", map_sf$CREDStotal_kgco2e_percap/1000, n = 9)
+
+leaflet(map_sf) %>%
+  addTiles() %>%  # Add default OpenStreetMap map tiles
+  addPolygons(color = ~colCats(CREDStotal_kgco2e_percap/1000),
+              fillOpacity = 0.6, 
+              weight = 1.5, 
+              popup = ~(paste0("LSOA: ",LSOA11NM,
+                               "<br> MSOA: " , MSOA11NM,
+                               "<br> Ward: ", WD20NM,
+                               "<br> LA: ", LAD11NM,
+                               "<br> Emissions per capita: ",CREDStotal_kgco2e_percap/1000 )
+                      ), # popups clicked
+              highlight = highlightOptions(
+                weight = 5,
+                color = "#666",
+                fillOpacity = 0.8,
+                bringToFront = TRUE))
+
+```
+
+```{r credsLSOAMapGas, fig.cap = "LSOA CREDS gas emissions per capita map (shows LSOA, MSOA, ward names and emissions per capita (T CO2e) when clicked"}
+
+
+
+colCats <- colorNumeric("Reds", map_sf$CREDSgas_percap_2018/1000, n = 9)
+
+leaflet(map_sf) %>%
+  addTiles() %>%  # Add default OpenStreetMap map tiles
+  addPolygons(color = ~colCats(CREDSgas_percap_2018/1000),
+              fillOpacity = 0.6, 
+              weight = 1.5, 
+              popup = ~(paste0("LSOA: ",LSOA11NM,
+                               "<br> MSOA: " , MSOA11NM,
+                               "<br> Ward: ", WD20NM,
+                               "<br> LA: ", LAD11NM,
+                               "<br> Emissions per capita: ",CREDSgas_percap_2018/1000 )
+                      ), # popups clicked
+              highlight = highlightOptions(
+                weight = 5,
+                color = "#666",
+                fillOpacity = 0.8,
+                bringToFront = TRUE))
+
+```
+
+```{r credsLSOAMapElec, fig.cap = "LSOA CREDS electricity emissions per capita map (shows LSOA, MSOA, ward names and emissions per capita (T CO2e) when clicked"}
+colCats <- colorNumeric("Reds", map_sf$CREDSelec_percap_2018/1000, n = 9)
+
+leaflet(map_sf) %>%
+  addTiles() %>%  # Add default OpenStreetMap map tiles
+  addPolygons(color = ~colCats(CREDSelec_percap_2018/1000),
+              fillOpacity = 0.6, 
+              weight = 1.5, 
+              popup = ~(paste0("LSOA: ",LSOA11NM,
+                               "<br> MSOA: " , MSOA11NM,
+                               "<br> Ward: ", WD20NM,
+                               "<br> LA: ", LAD11NM,
+                               "<br> Elec emissions per capita: ",CREDSelec_percap_2018/1000,
+                               "<br> % Elec heat: ", round(pc_Heating_Electric), " %")
+                      ), # popups clicked
+              highlight = highlightOptions(
+                weight = 5,
+                color = "#666",
+                fillOpacity = 0.8,
+                bringToFront = TRUE))
+
+```
+
+```{r credsLSOAMapEnergyPC, fig.cap = "LSOA CREDS gas & electricity emissions as % of total per capita (shows LSOA, MSOA, ward names and % when clicked"}
+
+colCats <- colorNumeric("Reds", map_sf$energy_pc, n = 9)
+
+leaflet(map_sf) %>%
+  addTiles() %>%  # Add default OpenStreetMap map tiles
+  addPolygons(color = ~colCats(energy_pc),
+              fillOpacity = 0.6, 
+              weight = 1.5, 
+              popup = ~(paste0("LSOA: ",LSOA11NM,
+                               "<br> MSOA: " , MSOA11NM,
+                               "<br> Ward: ", WD20NM,
+                               "<br> LA: ", LAD11NM,
+                               "<br> % of total: ",round(energy_pc), " %")
+                      ), # popups clicked
+              highlight = highlightOptions(
+                weight = 5,
+                color = "#666",
+                fillOpacity = 0.8,
+                bringToFront = TRUE))
+
+```
+
+Now let's see if we can tease out a few uncomfortable truths...
+
+First, how do per captia emissions correlate with deprivation? Note that this essentially reflects the CREDS model internals...
+
+Figure \@ref(fig:scatterIMDTotalCO2e)
+
+```{r scatterIMDTotalCO2e, fig.cap="Scatter of LSOA level total per capita emissions against IMD score - who emits?"}
+ggplot2::ggplot(map_sf, aes(x = IMDScore, y = CREDStotal_kgco2e_percap/1000)) +
+  geom_point(aes(colour = IMD_Decile_label)) +
+  geom_smooth() +
+  scale_color_viridis_d(name = "IMD Decile") +
+  labs(x = "IMD 2019 score",
+       y = "Estimated total T CO2e/capita (CREDS, 2021)")
+```
+
+Next do the same for gas & electricity - we can and will also do this with the actual gas/elec data for 2019 (see below)
+
+Figure \@ref(fig:scatterIMDgasCO2e)
+
+```{r scatterIMDgasCO2e, fig.cap="Scatter of LSOA level gas per capita emissions against IMD score - who emits?"}
+ggplot2::ggplot(map_sf, aes(x = IMDScore, y = CREDSgas_percap_2018/1000)) +
+  geom_point(aes(size = pc_Heating_Electric, colour = IMD_Decile_label)) +
+  geom_smooth() +
+  scale_size_continuous(name = "% Electric heating") +
+  scale_color_viridis_d(name = "IMD Decile") +
+  labs(x = "IMD 2019 score",
+       y = "Estimated gas T CO2e/capita (CREDS, 2021)")
+```
+Figure \@ref(fig:scatterIMDelecCO2e) shows electricity - this is much flatter reflecting the non-use of electricity for heat (currently) except in a few outlier LSOAs which are both relatively low deprivation and high electric heat.
+
+Figure \@ref(fig:scatterIMDelecCO2e)
+
+```{r scatterIMDelecCO2e, fig.cap="Scatter of LSOA level elec per capita emissions against IMD score - who emits?"}
+library(viridisLite)
+ggplot2::ggplot(map_sf, aes(x = IMDScore, y = CREDSelec_percap_2018)) +
+  geom_point(aes(size = pc_Heating_Electric, colour = IMD_Decile_label)) +
+  geom_smooth() +
+  scale_size_continuous(name = "% Electric heating") +
+  scale_color_viridis_d(name = "IMD Decile") +
+  labs(x = "IMD 2019 score",
+       y = "Estimated electricity T CO2e/capita (CREDS, 2021)")
+```
+
+Now do the same for the % of emissions from gas & electricity - this shows the % emissions left to deal with after we (may) have fixed gas & electricity.
+
+Figure \@ref(fig:scatterIMDenergypc) is really interesting - it shows that the % of emissions which are due to energy goes up as deprivation increases. Except for the final two outliers...
+
+Of course we already know that gas use declines as deprivation increases.
+
+```{r scatterIMDenergypc, fig.cap="Scatter of LSOA level % emissions due to electricity & gas against IMD score"}
+ggplot2::ggplot(map_sf, aes(x = IMDScore, y = energy_pc)) +
+  geom_point(aes(size = pc_Heating_Electric, colour = IMD_Decile_label)) +
+  geom_smooth() +
+  scale_color_viridis_d(name = "IMD Decile") +
+  scale_size_continuous(name = "% Electric heating") +
+  labs(x = "IMD 2019 score",
+       y = "% total emissions which are gas or electricity (CREDS)")
+```
+## Fuel poverty
+2019 estimates
+
+Source: https://www.gov.uk/government/statistics/sub-regional-fuel-poverty-data-2021
+
+
+```{r loadBEISFP}
+data$lsoa_beis_fp <- data.table::fread(here::here("data", "LSOA_Fuel_Poverty_2019.csv.gz"))
+```
+
+# Non-domestic carbon tax - examples
+
+We can use the BEIS non-domestic gas & electricity data at MSOA level. Note that some use is non-allocated
+
+## Gas
+
+Load data
+
+## Electricity
+
+# Domestic carbon tax - examples
+
+
+
+## Based on gas & electricity data for 2019
+
+### Domestic gas
+This uses the BEIS LSOA level electricity & gas data. Note that the gas data is weather corrected.
+
+Use [BEIS 2019 conversion factors](https://www.gov.uk/government/publications/greenhouse-gas-reporting-conversion-factors-2019): 
+
+```{r setEFgas}
+co2eKg <- list()
+co2eKg$gas_use <- 0.18385
+co2eKg$gas_wtt <- 0.02391
+```
+
+ *   `r co2eKg$gas_use` kg CO2e/kWh - emissions in use
+ *   `r co2eKg$gas_wtt` kg CO2e/kWh (WTT - i.e. upstream processing & distribution)
+
+```{r loadLSOAGas}
+gasF <- here::here("data", "LSOA_GAS_2019.csv.gz")
+gasDT <- data.table::fread(gasF)
+gasDT[,LAD11NM := `Local Authority Name`]
+sotonGasDT <- getSoton(gasDT)
+
+sotonGasDT[, co2eKg_gas_use := `Consumption (kWh)` * co2eKg$gas_use]
+sotonGasDT[, co2eKg_gas_wtt := `Consumption (kWh)` * co2eKg$gas_wtt]
+sotonGasDT[, co2eKg_gas_total := `Consumption (kWh)` * co2eKg$gas_wtt]
+
+message("N LSOAs = ", nrow(sotonGasDT))
+message("Check LA")
+sotonGasDT[, .(nLSOAs = .N,
+               totalMWh = sum(`Consumption (kWh)`/1000),
+               totalCo2eT_use = sum(co2eKg_gas_use/1000),
+               totalCo2eT_wtt = sum(co2eKg_gas_wtt/1000)), keyby = .(LAD11NM)]
+
+```
+
+Map the carbon footprint of domestic gas use in Southampton
+
+```{r mapGasUse}
+```
+
 # R environment
 
 ## R packages used
@@ -169,6 +583,18 @@ We would need to think carefully how to structure the system to avoid this.
 
 ## Session info
 
+
+# Data Tables
+
+I don't know if this will work...
+
+```{r skimTables}
+# tables <- names(data)
+# for(t in tables){
+#   print(lapply(tables, FUN(x) skimr::skim(data$eval(t)))
+# }
+message("Doesn't")
+```
 
 # References
 
