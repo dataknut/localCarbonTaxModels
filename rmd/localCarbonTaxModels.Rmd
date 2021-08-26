@@ -333,10 +333,12 @@ Notes:
 
 ```{r loadCREDSpbcc}
 data$lsoa_creds_pbcc <- data.table::fread(here::here("data", "LSOA_CREDS_PBCC_data.csv.gz"))
-# % of total emissions due to gas & elec
-data$lsoa_creds_pbcc[, energy_pc := 100*((elec_percap_2018 + gas_percap_2018)/total_kgco2e_percap)]
+# % of total emissions due to gas & elec & other heat
+data$lsoa_creds_pbcc[, energy_pc := 100*((elec_percap_2018 + gas_percap_2018 + other_heat_percap_2011)/total_kgco2e_percap)]
 # % of household (spaces?) with mainly elec
 data$lsoa_creds_pbcc[, pc_Heating_Electric := 100*(pHeating_Electric/(pHeating_None + pHeating_Gas + pHeating_Electric + pHeating_Oil + pHeating_Solid+ pHeating_Other))]
+
+data$lsoa_creds_pbcc[, LAD11NM := LAD17NM] # for matching - beware name changes
 
 #summary(data$lsoa_creds_pbcc$pc_Heating_Electric)
 ```
@@ -377,8 +379,6 @@ leaflet(map_sf) %>%
 
 ```{r credsLSOAMapGas, fig.cap = "LSOA CREDS gas emissions per capita map (shows LSOA, MSOA, ward names and emissions per capita (T CO2e) when clicked"}
 
-
-
 colCats <- colorNumeric("Reds", map_sf$CREDSgas_percap_2018/1000, n = 9)
 
 leaflet(map_sf) %>%
@@ -398,6 +398,15 @@ leaflet(map_sf) %>%
                 fillOpacity = 0.8,
                 bringToFront = TRUE))
 
+# sum of LSOA level CO2e for comparison with own estimates
+data$lsoa_creds_pbcc[, total_kgco2e_gas := gas_percap_2018 * pop_2018]
+# filter
+d <- getSoton(data$lsoa_creds_pbcc)
+message("Total CO2e per LSOA from residential gas 2018 (kg):")
+summary(d$total_kgco2e_gas)
+message("Total CO2e for Southampton from residential gas 2018 (T):")
+s <- sum(d$total_kgco2e_gas/1000)
+tidyNum(s)
 ```
 
 ```{r credsLSOAMapElec, fig.cap = "LSOA CREDS electricity emissions per capita map (shows LSOA, MSOA, ward names and emissions per capita (T CO2e) when clicked"}
@@ -421,9 +430,17 @@ leaflet(map_sf) %>%
                 fillOpacity = 0.8,
                 bringToFront = TRUE))
 
+# sum of LSOA level CO2e for comparison with own estimates
+data$lsoa_creds_pbcc[, total_kgco2e_elec := elec_percap_2018 * pop_2018]
+d <- getSoton(data$lsoa_creds_pbcc)
+message("Total CO2e per LSOA from residential electricity 2018 (kg):")
+summary(d$total_kgco2e_elec)
+message("Total CO2e for Southampton from residential electricity 2018 (T):")
+s <- sum(d$total_kgco2e_elec/1000)
+tidyNum(s)
 ```
 
-```{r credsLSOAMapEnergyPC, fig.cap = "LSOA CREDS gas & electricity emissions as % of total per capita (shows LSOA, MSOA, ward names and % when clicked"}
+```{r credsLSOAMapEnergyPC, fig.cap = "LSOA CREDS gas, electricity and other heat emissions as % of total per capita (shows LSOA, MSOA, ward names and % when clicked"}
 
 colCats <- colorNumeric("Reds", map_sf$energy_pc, n = 9)
 
@@ -489,7 +506,7 @@ ggplot2::ggplot(map_sf, aes(x = IMDScore, y = CREDSelec_percap_2018)) +
        y = "Estimated electricity T CO2e/capita (CREDS, 2021)")
 ```
 
-Now do the same for the % of emissions from gas & electricity - this shows the % emissions left to deal with after we (may) have fixed gas & electricity.
+Now do the same for the % of emissions from gas & electricity and other heat - this shows the % emissions left to deal with after we (may) have fixed those.
 
 Figure \@ref(fig:scatterIMDenergypc) is really interesting - it shows that the % of emissions which are due to energy goes up as deprivation increases. Except for the final two outliers...
 
@@ -502,7 +519,7 @@ ggplot2::ggplot(map_sf, aes(x = IMDScore, y = energy_pc)) +
   scale_color_viridis_d(name = "IMD Decile") +
   scale_size_continuous(name = "% Electric heating") +
   labs(x = "IMD 2019 score",
-       y = "% total emissions which are gas or electricity (CREDS)")
+       y = "% total emissions which are gas, electricity or other heat (CREDS, 2021)")
 ```
 ## Fuel poverty
 2019 estimates
