@@ -31,9 +31,6 @@ knitr::opts_chunk$set(echo = FALSE)
 knitr::opts_chunk$set(warning = FALSE)
 ```
 
-\newpage
-
-# Introduction
 
 ```{r rmdSetup, include=FALSE}
 
@@ -59,7 +56,17 @@ rmdParams <- list()
 
 source(here::here("R", "functions.R"))
 
+# Others
+
+data <- list() # for holding data
+
+boundaries <- list() # for holding boundaries
+
 ```
+
+\newpage
+
+# Introduction
 
 Taxes are not just a way to generate revenue, they are also a means to incentivise 'good' things and dis-incentivise 'bad' things. Think tobacco & alcohol duty, sugar taxes, vehicle emissions and so on. Local taxes on the other hand do not seem to follow the same approach. The [Council Tax](https://www.local.gov.uk/topics/finance-and-business-rates/local-taxation-council-tax-and-business-rates), of which local authorities keep 100%, doesn't really incentivise anything at all as it's based on a notional dwelling value. The same is true of business rates, based on the rental value of the property, of which local authorities keep 50% with some discussion of [making this 100%](https://www.local.gov.uk/topics/finance-and-business-rates/business-rates-retention) in future.
 
@@ -170,64 +177,42 @@ We would need to think carefully how to structure the system to avoid this.
 
 \newpage
 
-# Background data and boundary files
+# Emissions Levy Case Study
+
+In the remoinder of this paper we develop a model of an emissions levy using LSOA level data on emissions derived from the CREDS place-based emissions calculator. We apply carbon 'values' to a number of emissions categories to estimate the levy revenue that would be generated for each LSOA in year 1 of such a levy. We then sum these values to given anoverall levy revenue estimate for the area in the case study.
+
+We then use estimates of the cost of retrofitting EPC band dwellings D-E and F-G together with estimates of the number of such dwellings in each of the LSOAs to calculate the likely cost of such upgrades in each LSOA and for the whole area in the case study.
+
+We then compare the distributions of the two to understand whether sufficient revenue would be generated within each LSOA or in the case styudy area to enable the per-LSOA or whole case study area costs of the energy efficiency upgrades to be met. In doing so we also analyse the extent to which redistribution of revenue from high emissions areas (households) would be required. 
+
+It should be noted that this is area level analysis using mean emissions per household. It will not capture within-LSOA hetergeneity in emissions and so will almost certaonly underestimate the range of the household level emissions levy value.
+
+# Data and boundary files
 We will use a number of datasets to analyse the patterns of emissions. Some of these are in the repo as they are public access, others are not (or too large).
+
+This anlaysis is at LSOA level.
+
+## Useful LSOA labels and codes
+
+Load lSOA look-up table
+
+```{r loadLSOAlookup}
+
+message("Loading LSOA look-up table with useful labels")
+data$lsoa_lookup_solent <- data.table::fread(here::here("data", "LSOA_lookup_solent.csv.gz"))
+
+```
 
 ## Boundaries
 
-MSOA - use pre-created boundary files
-
-```{r loadMSOA}
-
-message ("Loading Solent MSOA boundaries from file")
-boundaries <- list()
-boundaries$msoa_solent <- sf::read_sf(here::here("data", "boundaries", "MSOA", "msoa_solent.shp"))
-message("Rows of data: ", nrow(boundaries$msoa_solent))
-
-message("Selecting Southampton")
-# can't use function as sf not a data.table
-boundaries$msoa_soton <- filter(boundaries$msoa_solent, LAD11NM == "Southampton")
-message("Rows of data: ", nrow(boundaries$msoa_soton))
-```
-
-Check with a map...
-
-```{r simpleMSOAMap, fig.cap = "MSOA check map (shows MSOA and LA names when clicked"}
-
-st_coord_sys <- sf::st_crs(boundaries$msoa_soton) # check coord system
-message("Boundary data co-ord system: ", st_coord_sys$epsg)
-# if required transform current coord system to EPSG: 4326 (is what leaflet wants - good)
-if(st_coord_sys$epsg != 4326){
- boundaries$msoa_soton_leaflet <- st_transform(boundaries$msoa_soton, "+proj=longlat +datum=WGS84")
-}
-
-
-leaflet(boundaries$msoa_soton_leaflet) %>%
-  addTiles() %>%  # Add default OpenStreetMap map tiles
-  addPolygons(fillOpacity = 0.2, 
-              weight = 1.5, 
-              popup = ~(paste0("MSOA: " ,MSOA11NM,
-                      "<br> LA: ", LAD11NM)
-                      ), # popups clicked
-              highlight = highlightOptions(
-                weight = 5,
-                color = "#666",
-                fillOpacity = 0.7,
-                bringToFront = TRUE))
-
-```
-
-LSOA
+LSOA - this is all going to be LSOA analysis
 
 ```{r loadLSOA}
 message ("Loading Solent LSOA boundaries from file")
-boundaries <- list()
+# if you want a different area you'll need a different .shp file
+
 boundaries$lsoa_solent <- sf::read_sf(here::here("data", "boundaries", "LSOA", "lsoa_solent.shp"))
 message("Rows of data: ", nrow(boundaries$lsoa_solent))
-
-message("Loading LSOA look-up table with useful labels")
-data <- list()
-data$lsoa_lookup <- data.table::fread(here::here("data", "LSOA_lookup_solent.csv.gz"))
 
 message("Selecting Southampton")
 # can't use function as sf not a data.table
@@ -242,11 +227,13 @@ Check with a map...
 st_coord_sys <- sf::st_crs(boundaries$lsoa_soton) # check coord system
 message("Boundary data co-ord system: ", st_coord_sys$epsg)
 # if required transform current coord system to EPSG: 4326 (is what leaflet wants - good)
+# do this once here and then re-use
 if(st_coord_sys$epsg != 4326){
  boundaries$lsoa_soton_leaflet <- st_transform(boundaries$lsoa_soton, "+proj=longlat +datum=WGS84")
 }
 
-boundaries$lsoa_soton_leaflet <- merge(boundaries$lsoa_soton_leaflet, data$lsoa_lookup[, .(LSOA11CD, WD20CD, WD20NM)],
+# merge some of the LSOA labels to the boundaries so they can be in the map pop-up
+boundaries$lsoa_soton_leaflet <- merge(boundaries$lsoa_soton_leaflet, data$lsoa_lookup_solent[, .(LSOA11CD, WD20CD, WD20NM)],
                                        by = "LSOA11CD")
 
 leaflet(boundaries$lsoa_soton_leaflet) %>%
@@ -279,10 +266,14 @@ data$lsoa_imd2019[, IMD_Decile_label := ifelse(IMD_Decile == 1, "1 (10% most dep
 data$lsoa_imd2019[, IMD_Decile_label := ifelse(IMD_Decile == 10, "10 (10% least deprived)",IMD_Decile_label)]
 
 data$lsoa_imd2019[, IMD_Decile_label := factor(IMD_Decile_label, levels = c("1 (10% most deprived)","2","3","4","5","6","7","8","9","10 (10% least deprived)"))]
+message("Overall IMD decile counts")
+nrow(data$lsoa_imd2019)
 table(data$lsoa_imd2019$IMD_Decile_label)                               
-
 data$lsoa_imd2019_soton <- getSoton(data$lsoa_imd2019)
+
+message("# Southampton IMD decile counts")
 nrow(data$lsoa_imd2019_soton)
+table(data$lsoa_imd2019_soton$IMD_Decile_label) 
 ```
 
 These are LSOA level deprivation indices. Decile is the English & Welsh decile:
@@ -335,204 +326,148 @@ Notes:
 data$lsoa_creds_pbcc <- data.table::fread(here::here("data", "LSOA_CREDS_PBCC_data.csv.gz"))
 # % of total emissions due to gas & elec & other heat
 data$lsoa_creds_pbcc[, energy_pc := 100*((elec_percap_2018 + gas_percap_2018 + other_heat_percap_2011)/total_kgco2e_percap)]
+
+nrow(data$lsoa_creds_pbcc)
+
 # % of household (spaces?) with mainly elec
 data$lsoa_creds_pbcc[, pc_Heating_Electric := 100*(pHeating_Electric/(pHeating_None + pHeating_Gas + pHeating_Electric + pHeating_Oil + pHeating_Solid+ pHeating_Other))]
 
 data$lsoa_creds_pbcc[, LAD11NM := LAD17NM] # for matching - beware name changes
 
-#summary(data$lsoa_creds_pbcc$pc_Heating_Electric)
-```
+# calc totals ----
+data$lsoa_creds_pbcc[, CREDStotal_kgco2e := total_kgco2e_percap * pop_2018]
+data$lsoa_creds_pbcc[, CREDSgas_kgco2e2018 := gas_percap_2018 * pop_2018]
+data$lsoa_creds_pbcc[, CREDSelec_kgco2e2018 := elec_percap_2018 * pop_2018]
+data$lsoa_creds_pbcc[, CREDSotherEnergy_kgco2e2011 := other_heat_percap_2011 * pop_2018]
+data$lsoa_creds_pbcc[, CREDSallHomeEnergy_kgco2e2011 := CREDSotherEnergy_kgco2e2011 + CREDSgas_kgco2e2018 + CREDSelec_kgco2e2018 + CREDSotherEnergy_kgco2e2011]
+data$lsoa_creds_pbcc[, CREDScar_kgco2e2018 := car_percap_2018 * pop_2018]
+data$lsoa_creds_pbcc[, CREDSvan_kgco2e2018 := van_percap_2018 * pop_2018]
 
-## Fuel poverty
-2019 estimates
+# get analytic dataset ----
+# reduced variable set for simplicity
+# reduced LA if you wish - in this case Southampton
 
-Source: https://www.gov.uk/government/statistics/sub-regional-fuel-poverty-data-2021
-
-
-```{r loadBEISFP}
-data$lsoa_beis_fp <- data.table::fread(here::here("data", "LSOA_Fuel_Poverty_2019.csv.gz"))
-```
-
-# Non-domestic carbon tax - examples
-
-We can use the BEIS non-domestic gas & electricity data at MSOA level. Note that some use is non-allocated
-
-## Gas
-
-Load data
-
-## Electricity
-
-# Domestic carbon tax - examples
-
-## Using the CREDS data
-
-Case studies:
-
- * Annual carbon tax
- * Half-hourly (real time) carbon tax
-
-BEIS/ETC Carbon ‘price’
-
- * 2020 - £21.93 https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/849276/Carbon__Penalty_Price_Determination_for_2020.pdf 
-
-EU carbon ‘price’
-
- * September 2021: €60 (£51) https://tradingeconomics.com/eecxm:ind
-
-BEIS Carbon ‘Value’ https://www.gov.uk/government/publications/valuing-greenhouse-gas-emissions-in-policy-appraisal/valuation-of-greenhouse-gas-emissions-for-policy-appraisal-and-evaluation#annex-1-carbon-values-in-2020-prices-per-tonne-of-co2
-
- * based on a Marginal Abatement Cost (MAC)
- * 2021: 
-    * Low: £122/T
-    * Central: £245/T
-    * High: £367/T
-
-Convert the per capita to totals and then use the number of electricity meters as a proxy for the number of dwellings
-
-Ideally we'd have Census 2021 data but we don't have it yet. So instead we'll use the number of electricity meters (might be an over-estimate if a dwelling has 2...)
-
-First check the n electricity meters logic...
-
-```{r check_nElecMeters}
-gasF <- here::here("data", "LSOA_GAS_2019.csv.gz")
-gasDT <- data.table::fread(gasF)
-gasDT[,LAD11NM := `Local Authority Name`]
-gasDT[,LSOA11CD := `Lower Layer Super Output Area (LSOA) Code`]
-soton_gas2019DT <- getSoton(gasDT)
-setkey(soton_gas2019DT, LSOA11CD, LAD11NM)
-
-elecF <- here::here("data", "LSOA_ELEC_2019.csv.gz")
-elecDT <- data.table::fread(elecF)
-elecDT[,LAD11NM := `Local Authority Name`]
-elecDT[,LSOA11CD := `Lower Layer Super Output Area (LSOA) Code`]
-soton_elec2019DT <- getSoton(elecDT)
-setkey(soton_elec2019DT, LSOA11CD, LAD11NM)
-
-energy_2019DT <- soton_elec2019DT[soton_gas2019DT]
-energy_2019DT[, nGasMeters := `Number of consuming meters`]
-energy_2019DT[, nElecMeters := `Total number of domestic electricity meters`]
-setkey(energy_2019DT, LSOA11CD)
-
-# get CREDS data (again) ----
-soton_CREDS <- getSoton(data$lsoa_creds_pbcc[, .(LAD11NM, WD18NM, LSOA11CD = LSOA11, 
-                                        CREDStotal_kgco2e_percap = total_kgco2e_percap,
-                                        CREDSgas_percap_2018 = gas_percap_2018,
-                                        CREDSelec_percap_2018 = elec_percap_2018,
+credsLsoaDT <- getSoton(data$lsoa_creds_pbcc[, .(LAD11NM, WD18NM, LSOA11CD = LSOA11, 
+                                        CREDStotal_kgco2e,CREDSgas_kgco2e2018,CREDSelec_kgco2e2018,
+                                        CREDSotherEnergy_kgco2e2011,CREDSallHomeEnergy_kgco2e2011,
+                                        CREDScar_kgco2e2018,CREDSvan_kgco2e2018,
                                         pop_2018, energy_pc, pc_Heating_Electric,
                                         epc_total, epc_newbuild, epc_A, epc_B,
-                                        epc_C, epc_D, epc_E, epc_F, epc_G,
-                                        epc_mainfuel_electric = mainfuel_electric)])
+                                        epc_C, epc_D, epc_E, epc_F, epc_G)])
 
-# calc totals
-soton_CREDS[, CREDStotal_kgco2e := CREDStotal_kgco2e_percap * pop_2018]
-soton_CREDS[, CREDSgas_kgco2e2018 := CREDSgas_percap_2018 * pop_2018]
-soton_CREDS[, CREDSelec_kgco2e2018 := CREDSelec_percap_2018 * pop_2018]
-soton_CREDS[, CREDSotherEnergy_kgco2e2011 := other_heat_percap_2011 * pop_2018]
-soton_CREDS[, CREDSallHomeEnergy_kgco2e2011 := CREDSotherEnergy_kgco2e2011 + CREDSgas_kgco2e2018 + CREDSelec_kgco2e2018 + CREDSotherEnergy_kgco2e2011]
-soton_CREDS[, CREDScar_kgco2e2018 := car_percap_2018 * pop_2018]
-soton_CREDS[, CREDSvan_kgco2e2018 := van_percap_2018 * pop_2018]
-
-setkey(soton_CREDS, LSOA11CD)
-message("Soton LSOAs: ")
-nrow(soton_CREDS)
 
 # add IMD etc
 lsoa_imd2019_soton <- data$lsoa_imd2019_soton
 lsoa_imd2019_soton[, LSOA11CD := lsoa11cd]
 setkey(lsoa_imd2019_soton, LSOA11CD)
 
-soton_CREDS <- soton_CREDS[lsoa_imd2019_soton[, .(LSOA11CD, IMD_Decile, IMDScore, IMD_Decile_label)]] # reduced set of vars
+lsoa_lookup_solent <- data$lsoa_lookup_solent
+setkey(lsoa_lookup_solent, LSOA11CD)
 
-soton_CREDS <- soton_CREDS[energy_2019DT]
+setkey(credsLsoaDT, LSOA11CD)
+credsLsoaDT <- credsLsoaDT[lsoa_lookup_solent[, .(LSOA11CD, RUC11, oacSuperGroupName = `Supergroup Name`)]]
+
+credsLsoaDT <- credsLsoaDT[lsoa_imd2019_soton[, .(LSOA11CD, IMD_Decile, IMDScore, IMD_Decile_label)]] # reduced set of vars
+
+# run skim & eyeball for strange stuff - especially check:
+# n rows - is this what you expect?
+# n unique LAD11NM = number of LAs included
+skimr::skim(credsLsoaDT)
+
+# directly check LAs included (first 6 rows of table)
+head(table(credsLsoaDT$LAD11NM))
 ```
 
+Now we need to convert the per capita to totals and then use the number of electricity meters as a proxy for the number of dwellings
+
+Ideally we'd have Census 2021 data but we don't have it yet. So instead we'll use the number of electricity meters for 2018 which aligns with the CREDS data (might be an over-estimate if a dwelling has 2...)
+
+First check the n electricity meters logic...
+
+```{r check_nElecMeters}
+gasF <- here::here("data", "LSOA_GAS_2018.csv.gz")
+gasDT <- data.table::fread(gasF)
+gasDT[,LAD11NM := `Local Authority Name`]
+gasDT[,LSOA11CD := `Lower Layer Super Output Area (LSOA) Code`]
+soton_gas2018DT <- getSoton(gasDT)
+setkey(soton_gas2018DT, LSOA11CD, LAD11NM)
+
+elecF <- here::here("data", "LSOA_ELEC_2018.csv.gz")
+elecDT <- data.table::fread(elecF)
+elecDT[,LAD11NM := `Local Authority Name`]
+elecDT[,LSOA11CD := `Lower Layer Super Output Area (LSOA) Code`]
+soton_elec2018DT <- getSoton(elecDT)
+setkey(soton_elec2018DT, LSOA11CD, LAD11NM)
+
+energy_2018DT <- soton_elec2018DT[soton_gas2018DT]
+energy_2018DT[, nGasMeters := `Number of consuming meters`]
+energy_2018DT[, nElecMeters := `Total number of domestic electricity meters`]
+setkey(energy_2018DT, LSOA11CD)
+
+setkey(credsLsoaDT, LSOA11CD)
+message("LSOAs (check): ")
+nrow(credsLsoaDT)
+
+credsLsoaDT <- credsLsoaDT[energy_2018DT]
+```
+
+Check that the number of electricity meters reasonably correlates with the number of EPCs from the CREDS data. We would _not_ expect the number of gas meters to correlate due to non-gas dwellings etc.
+
 ```{r checkDwellingCounts}
-p <- soton_CREDS[, .(BEIS_nGasMeters2019 = nGasMeters, 
-                     BEIS_nElecMeters2019 = nElecMeters, 
-                     CREDS_epc_total2019 = epc_total)]
+p <- credsLsoaDT[, .(BEIS_nGasMeters2018 = nGasMeters, 
+                     BEIS_nElecMeters2018 = nElecMeters, 
+                     CREDS_epc_total2018 = epc_total)]
 
 pairs(p)
 ```
-Seems sensible...
 
-```{r impute_EPC_counts}
-# CREDS data has counts - we know there are missing EPCs
-message("N EPCs")
-summary(soton_CREDS$epc_total)
-message("N elec meters")
-summary(soton_CREDS$nElecMeters)
+That assumption seems sensible... 
 
-# We will assume the distribution of EPCs across bands within LSOAs is unbiased
-# So the % will be OK but the count will be wrong
-soton_CREDS[, epc_A_pc := epc_A/epc_total]
-soton_CREDS[, epc_B_pc := epc_B/epc_total]
-soton_CREDS[, epc_C_pc := epc_C/epc_total]
-soton_CREDS[, epc_D_pc := epc_D/epc_total]
-soton_CREDS[, epc_E_pc := epc_E/epc_total]
-soton_CREDS[, epc_F_pc := epc_F/epc_total]
-soton_CREDS[, epc_G_pc := epc_G/epc_total]
+### Estimate per dwelling emissions
 
-soton_CREDS[, epc_A_imp := epc_A_pc * nElecMeters] # rebase using nElecMeters
-soton_CREDS[, epc_B_imp := epc_B_pc * nElecMeters]
-soton_CREDS[, epc_C_imp := epc_C_pc * nElecMeters]
-soton_CREDS[, epc_D_imp := epc_D_pc * nElecMeters]
-soton_CREDS[, epc_E_imp := epc_E_pc * nElecMeters]
-soton_CREDS[, epc_F_imp := epc_F_pc * nElecMeters]
-soton_CREDS[, epc_G_imp := epc_G_pc * nElecMeters]
+We want to present the analysis in 'per dwelling' or 'per household' terms so we need to convert the total kg CO2e values to per dwelling values by dividing by the number of electricity meters.
+
+```{r estimatePerDwellingCO2e}
+
+credsLsoaDT[, CREDStotal_kgco2e_pdw := CREDStotal_kgco2e/nElecMeters]
+
+credsLsoaDT[, CREDSgas_kgco2e2018_pdw := CREDSgas_kgco2e2018/nElecMeters]
+
+credsLsoaDT[, CREDSelec_kgco2e2018_pdw := CREDSelec_kgco2e2018/nElecMeters]
+
+credsLsoaDT[, CREDSmeasuredHomeEnergy_kgco2e2018_pdw := (CREDSgas_kgco2e2018 + CREDSelec_kgco2e2018)/nElecMeters]
+
+credsLsoaDT[, CREDSotherEnergy_kgco2e2011_pdw := CREDSotherEnergy_kgco2e2011/nElecMeters]
+
+credsLsoaDT[, CREDSallHomeEnergy_kgco2e2018_pdw:= (CREDSelec_kgco2e2018 + CREDSgas_kgco2e2018 + CREDSotherEnergy_kgco2e2011)/nElecMeters]
+
+credsLsoaDT[, CREDScar_kgco2e2018_pdw:= CREDScar_kgco2e2018/nElecMeters]
+
+credsLsoaDT[, CREDSvan_kgco2e2018_pdw:= CREDSvan_kgco2e2018/nElecMeters]
+
+credsLsoaDT[, CREDSpersonalTransport_kgco2e2018_pdw:= (CREDScar_kgco2e2018 + CREDSvan_kgco2e2018)/nElecMeters]
+
+t <- summary(credsLsoaDT[, .(CREDStotal_kgco2e_pdw,CREDSgas_kgco2e2018_pdw,CREDSelec_kgco2e2018_pdw,
+                             CREDSmeasuredHomeEnergy_kgco2e2018_pdw,
+                             CREDSotherEnergy_kgco2e2011_pdw, CREDSallHomeEnergy_kgco2e2018_pdw,
+                             CREDScar_kgco2e2018_pdw, CREDSvan_kgco2e2018_pdw, CREDSpersonalTransport_kgco2e2018_pdw) ])
+
+message("# Summary of per dwelling values")
+t
 ```
 
-Correlation between high % EPC F/G or A/B and deprivation?
+Examine patterns of per dwelling emissions for sense.
 
-```{r plotEPC_pc}
-ggplot2::ggplot(soton_CREDS, aes(x = IMDScore, y = epc_F_pc + epc_G_pc)) +
-  geom_point() +
-  geom_smooth()
+#### All emissions
 
-ggplot2::ggplot(soton_CREDS, aes(x = IMDScore, y = epc_A_pc + epc_B_pc)) +
-  geom_point() +
-  geom_smooth()
-```
+Figure \@ref(fig:visIMDallCO2eperdw) shows the LSOA level per dwelling 'all emissions' in Tonnes CO2e as estimated by the CREDS tool against the Index of Multiple Deprivation (IMD) score and uses the size of the points to represent the % of dwellings with electric heating. Colour is used to represent the IMD decile where decile 1 is the 10% least deprived.
 
-Now we need to convert the % to dwellings using the number of electricity meters (see above).
-
-```{r plotEPC_impute}
-ggplot2::ggplot(soton_CREDS, aes(x = IMDScore, y = epc_F_imp + epc_G_imp)) +
-  geom_point() +
-  geom_smooth()
-
-ggplot2::ggplot(soton_CREDS, aes(x = IMDScore, y = epc_A_imp + epc_B_imp)) +
-  geom_point() +
-  geom_smooth()
-```
-
-
-Seems sensible...
-
-### Per dwelling emissions
-
-Redraw some of the original scatters using per dwelling instead of per capita
-
-```{r estimatePerDwerllingEmissions}
-
-soton_CREDS[, CREDStotal_kgco2e_pdw := CREDStotal_kgco2e/nElecMeters]
-summary(soton_CREDS$CREDStotal_kgco2e_pdw/1000)
-
-soton_CREDS[, CREDSgas_kgco2e2018_pdw := CREDSgas_kgco2e2018/nElecMeters]
-summary(soton_CREDS$CREDSgas_kgco2e2018_pdw/1000)
-
-soton_CREDS[, CREDSelec_kgco2e2018_pdw := CREDSelec_kgco2e2018/nElecMeters]
-summary(soton_CREDS$CREDSelec_kgco2e2018_pdw/1000)
-
-soton_CREDS[, CREDSenergy_kgco2e2018_pdw:= (CREDSelec_kgco2e2018/nElecMeters) + (CREDSgas_kgco2e2018/nElecMeters)]
-
-```
-
-```{r scatterIMDallCO2eperdw, fig.height = 5, fig.cap="Scatter of LSOA level all per dwelling emissions against IMD score - who emits?"}
+```{r visIMDallCO2eperdw, fig.height = 5, fig.cap="Scatter of LSOA level all per dwelling emissions against IMD score"}
 message("Per dwelling T CO2e - all emissions")
 
-
-ggplot2::ggplot(soton_CREDS, aes(x = IMDScore, y = CREDStotal_kgco2e_pdw/1000)) +
+# if this is all LSOAs in a larger area might want to use RUC11 instead of IMD_Decile_label to look at
+# urban/rural distirbutions
+ggplot2::ggplot(credsLsoaDT, aes(x = IMDScore, y = CREDStotal_kgco2e_pdw/1000)) +
   geom_point(aes(size = pc_Heating_Electric, colour = IMD_Decile_label)) +
   geom_smooth() +
   scale_size_continuous(name = "% Electric heating") +
@@ -542,15 +477,15 @@ ggplot2::ggplot(soton_CREDS, aes(x = IMDScore, y = CREDStotal_kgco2e_pdw/1000)) 
 ggplot2::ggsave(filename = here::here("plots/scatterIMD_CREDStotal_kgco2e_pdw.png"))
 
 message("Correlation test (pwcorr)")
-cor.test(soton_CREDS$IMDScore, soton_CREDS$CREDStotal_kgco2e_pdw)
+cor.test(credsLsoaDT$IMDScore, credsLsoaDT$CREDStotal_kgco2e_pdw)
 
-t <- soton_CREDS[, .(LSOA11CD, WD18NM, All_Tco2e_per_dw = CREDStotal_kgco2e_pdw/1000)]
+t <- credsLsoaDT[, .(LSOA11CD, WD18NM, All_Tco2e_per_dw = CREDStotal_kgco2e_pdw/1000)]
 
 head(t[order(-All_Tco2e_per_dw)])
 
 tail(t[order(-All_Tco2e_per_dw)])
 
-sf <- merge(map_sf, t, by = "LSOA11CD")
+sf <- merge(boundaries$lsoa_soton_leaflet, t, by = "LSOA11CD")
 
 colCats <- colorNumeric("Reds", t$All_Tco2e_per_dw, n = 9)
 
@@ -574,13 +509,15 @@ leaflet(sf) %>%
 
 ```
 
+#### Home energy use
 
-```{r scatterIMDgasCO2eperdw, fig.height = 5, fig.cap="Scatter of LSOA level gas per dwelling emissions against IMD score - who emits?"}
+Figure \@ref(fig:visIMDgasCO2eperdw) uses the same plotting method to show emissions per dwelling due to gas use. This preserves the negative correlation shown in the previou splot for 'all emissions' but with some variation, notably for LSOAs which have a higher % ofelectric heating.
+
+```{r visIMDgasCO2eperdw, fig.height = 5, fig.cap="Scatter of LSOA level gas per dwelling emissions against IMD score"}
 
 message("Per dwelling T CO2e - gas emissions")
 
-
-ggplot2::ggplot(soton_CREDS, aes(x = IMDScore, y = CREDSgas_kgco2e2018_pdw/1000)) +
+ggplot2::ggplot(credsLsoaDT, aes(x = IMDScore, y = CREDSgas_kgco2e2018_pdw/1000)) +
   geom_point(aes(size = pc_Heating_Electric, colour = IMD_Decile_label)) +
   geom_smooth() +
   scale_size_continuous(name = "% Electric heating") +
@@ -590,14 +527,16 @@ ggplot2::ggplot(soton_CREDS, aes(x = IMDScore, y = CREDSgas_kgco2e2018_pdw/1000)
 ggplot2::ggsave(filename = here::here("plots/scatterIMD_CREDSgas_kgco2e2018_pdw.png"))
 
 message("Correlation test (pwcorr)")
-cor.test(soton_CREDS$IMDScore, soton_CREDS$CREDSgas_kgco2e2018_pdw)
+cor.test(credsLsoaDT$IMDScore, credsLsoaDT$CREDSgas_kgco2e2018_pdw)
 ```
 
-```{r scatterIMDelecCO2eperdw, fig.height = 5, fig.cap="Scatter of LSOA level elec per dwelling emissions against IMD score - who emits?"}
+Figure \@ref(fig:visIMDelecCO2eperdw) uses the same plotting method to show emissions per dwelling due to electricity use. This is mnuch more random... although note the LSOAs with higher % electric heating.
+
+```{r visIMDelecCO2eperdw, fig.height = 5, fig.cap="Scatter of LSOA level elec per dwelling emissions against IMD score - who emits?"}
 
 message("Per dwelling T CO2e - elec emissions")
 
-ggplot2::ggplot(soton_CREDS, aes(x = IMDScore, y = (CREDSelec_kgco2e2018/nElecMeters)/1000)) +
+ggplot2::ggplot(credsLsoaDT, aes(x = IMDScore, y = CREDSelec_kgco2e2018_pdw/1000)) +
   geom_point(aes(size = pc_Heating_Electric, colour = IMD_Decile_label)) +
   geom_smooth() +
   scale_size_continuous(name = "% Electric heating") +
@@ -607,27 +546,212 @@ ggplot2::ggplot(soton_CREDS, aes(x = IMDScore, y = (CREDSelec_kgco2e2018/nElecMe
 ggplot2::ggsave(filename = here::here("plots/scatterIMD_CREDSelec_kgco2e2018_pdw.png"))
 
 message("Correlation test (pwcorr)")
-cor.test(soton_CREDS$IMDScore, soton_CREDS$CREDSelec_kgco2e2018_pdw)
+cor.test(credsLsoaDT$IMDScore, credsLsoaDT$CREDSelec_kgco2e2018_pdw)
 
 ```
 
-```{r correlateAllandEnergyEmissions}
 
-cor.test(soton_CREDS$CREDStotal_kgco2e_pdw, soton_CREDS$CREDSenergy_kgco2e2018_pdw)
+Figure \@ref(fig:visIMDotherEnergyCO2eperdw) uses the same plotting method to show emissions per dwelling due to other energy use. This should be higher for off-gas areas which tend to be rural areas so we also present analysis by the LSOA's urban/rural classification.
 
-ggplot2::ggplot(soton_CREDS, aes(x = CREDStotal_kgco2e_pdw/1000, 
-                                 y = CREDSenergy_kgco2e2018_pdw/1000)) +
+```{r visIMDotherEnergyCO2eperdw, fig.height = 5, fig.cap="Scatter of LSOA level other energy per dwelling emissions against IMD score - who emits?"}
+
+message("Per dwelling T CO2e - elec emissions")
+
+ggplot2::ggplot(credsLsoaDT, aes(x = IMDScore, y = CREDSotherEnergy_kgco2e2011_pdw/1000)) +
+  geom_point(aes(size = pc_Heating_Electric, colour = IMD_Decile_label)) +
+  geom_smooth() +
+  scale_size_continuous(name = "% Electric heating") +
+  scale_color_viridis_d(name = "IMD Decile") +
+  labs(x = "IMD 2019 score",
+       y = "Estimated electricity T CO2e/household (CREDS, 2021)")
+ggplot2::ggsave(filename = here::here("plots/scatterIMD_CREDSotherEnergy_kgco2e2018_pdw.png"))
+
+message("Correlation test (pwcorr)")
+cor.test(credsLsoaDT$IMDScore, credsLsoaDT$CREDSelec_kgco2e2018_pdw)
+
+credsLsoaDT[, .(mean_gas_kgco2e = mean(CREDSgas_kgco2e2018_pdw),
+                mean_elec_kgco2e = mean(CREDSelec_kgco2e2018_pdw),
+                mean_other_energy_kgco2e = mean(CREDSotherEnergy_kgco2e2011_pdw)), 
+                keyby = .(RUC11)] # only sensible for case styudy area which is a mix of urban/rural
+
+```
+
+Check whether all _measured_ energy emissions combined (gas & electricity) correlate with all emissions (in this data).
+
+```{r correlateAllandMeasuredEnergyEmissions}
+
+cor.test(credsLsoaDT$CREDStotal_kgco2e_pdw, credsLsoaDT$CREDSmeasuredHomeEnergy_kgco2e2018_pdw)
+
+ggplot2::ggplot(credsLsoaDT, aes(x = CREDStotal_kgco2e_pdw/1000, 
+                                 y = CREDSmeasuredHomeEnergy_kgco2e2018_pdw/1000)) +
   geom_point(aes(size = pc_Heating_Electric, colour = IMD_Decile_label)) +
   geom_smooth() +
   scale_size_continuous(name = "% Electric heating") +
   scale_color_viridis_d(name = "IMD Decile") +
   labs(x = "Estimated total T CO2e/household (CREDS, 2021)",
-       y = "Estimated energy T CO2e/household (CREDS, 2021)")
-ggplot2::ggsave(filename = here::here("plots/scatterCREDStotal_kgco2e_pdw_CREDSenergy_kgco2e2018_pdw.png"))
+       y = "Estimated measured energy T CO2e/household (CREDS, 2021)")
+ggplot2::ggsave(filename = here::here("plots/scatterCREDStotal_kgco2e_pdw_CREDSmeasuredHomeEnergy_kgco2e2018_pdw.png"))
+```
+
+Strong correlkation. So in theory we could (currently) use measured energy emissions as a proxy for total emissions.
+
+Repeat for all home energy - includes estimates of emissions from oil etc
+
+```{r correlateAllandMeasuredEnergyEmissions}
+
+cor.test(credsLsoaDT$CREDStotal_kgco2e_pdw, credsLsoaDT$CREDSallHomeEnergy_kgco2e2018_pdw)
+
+ggplot2::ggplot(credsLsoaDT, aes(x = CREDStotal_kgco2e_pdw/1000, 
+                                 y = CREDSallHomeEnergy_kgco2e2018_pdw/1000)) +
+  geom_point(aes(size = pc_Heating_Electric, colour = IMD_Decile_label)) +
+  geom_smooth() +
+  scale_size_continuous(name = "% Electric heating") +
+  scale_color_viridis_d(name = "IMD Decile") +
+  labs(x = "Estimated total T CO2e/household (CREDS, 2021)",
+       y = "Estimated total home energy T CO2e/household (CREDS, 2021)")
+ggplot2::ggsave(filename = here::here("plots/scatterCREDStotal_kgco2e_pdw_CREDSmeasuredHomeEnergy_kgco2e2018_pdw.png"))
+```
+
+Slightly weaker correlation...
+
+#### Transport
+
+We don't expect to use this data as it is already taxed in a way that relates to emissions (?)
+
+Figure \@ref(fig:visIMDcarCO2eperdw) uses the same plotting method to show emissions per dwelling due to van use. Again, we present analysis by the LSOA's urban/rural classification.
+
+```{r visIMDcarCO2eperdw, fig.height = 5, fig.cap="Scatter of LSOA level car use per dwelling emissions against IMD score"}
+
+message("Per dwelling T CO2e - car emissions")
+
+ggplot2::ggplot(credsLsoaDT, aes(x = IMDScore, y = CREDScar_kgco2e2018_pdw/1000)) +
+  geom_point(aes(size = pc_Heating_Electric, colour = IMD_Decile_label)) +
+  geom_smooth() +
+  scale_size_continuous(name = "% Electric heating") +
+  scale_color_viridis_d(name = "IMD Decile") +
+  labs(x = "IMD 2019 score",
+       y = "Estimated electricity T CO2e/household (CREDS, 2021)")
+ggplot2::ggsave(filename = here::here("plots/scatterIMD_CREDScar_kgco2e2018_pdw.png"))
+
+message("Correlation with IMD score (pwcorr)")
+cor.test(credsLsoaDT$IMDScore, credsLsoaDT$CREDScar_kgco2e2018_pdw)
+
+credsLsoaDT[, .(mean_car_kgco2e = mean(CREDScar_kgco2e2018_pdw),
+                mean_van_kgco2e = mean(CREDSvan_kgco2e2018_pdw)), 
+                keyby = .(RUC11)] # only sensible for case styudy area which is a mix of urban/rural
+
+```
+
+Figure \@ref(fig:visIMDvanCO2eperdw) uses the same plotting method to show emissions per dwelling due to van use.
+
+```{r visIMDvanCO2eperdw, fig.height = 5, fig.cap="Scatter of LSOA level van use per dwelling emissions against IMD score"}
+
+message("Per dwelling T CO2e - van emissions")
+
+ggplot2::ggplot(credsLsoaDT, aes(x = IMDScore, y = CREDSvan_kgco2e2018_pdw/1000)) +
+  geom_point(aes(size = pc_Heating_Electric, colour = IMD_Decile_label)) +
+  geom_smooth() +
+  scale_size_continuous(name = "% Electric heating") +
+  scale_color_viridis_d(name = "IMD Decile") +
+  labs(x = "IMD 2019 score",
+       y = "Estimated van use T CO2e/household (CREDS, 2021)")
+ggplot2::ggsave(filename = here::here("plots/scatterIMD_CREDSvan_kgco2e2018_pdw.png"))
+
+message("Correlation with IMD score (pwcorr)")
+cor.test(credsLsoaDT$IMDScore, credsLsoaDT$CREDSvan_kgco2e2018_pdw)
+
+```
+
+### Impute EPC counts
+
+In order to estimate the LSOA level retrofit costs, we need to impute the EPC counts in each LSOA. We do this using the number of electricity meters as the presumed number of dwellings and the observed % of EPCs in each band for all dwellings with EPCs which is provided by the CREDS data. This _assumes_ that if we had EPCs for all dwellings then the % in each band in each LSOA would stay the same. This is quite a bold assumption...
+
+Note that the EPC database is continuously updated so more recent upgrades will not be captured in the data used for this analysis. This means the total retrofit costs are likely to be an over-estimate. The extent of this over-estimate would require the use of an updated (current) EPC data extract and is left for future work.
+
+```{r impute_EPC_counts}
+# CREDS data has counts - we know there are missing EPCs
+message("N EPCs")
+summary(credsLsoaDT$epc_total)
+message("N elec meters")
+summary(credsLsoaDT$nElecMeters)
+
+# We will assume the distribution of EPCs across bands within LSOAs is unbiased
+# So the % will be OK but the count will be wrong
+credsLsoaDT[, epc_A_pc := epc_A/epc_total]
+credsLsoaDT[, epc_B_pc := epc_B/epc_total]
+credsLsoaDT[, epc_C_pc := epc_C/epc_total]
+credsLsoaDT[, epc_D_pc := epc_D/epc_total]
+credsLsoaDT[, epc_E_pc := epc_E/epc_total]
+credsLsoaDT[, epc_F_pc := epc_F/epc_total]
+credsLsoaDT[, epc_G_pc := epc_G/epc_total]
+
+credsLsoaDT[, epc_A_imp := epc_A_pc * nElecMeters] # rebase using nElecMeters
+credsLsoaDT[, epc_B_imp := epc_B_pc * nElecMeters]
+credsLsoaDT[, epc_C_imp := epc_C_pc * nElecMeters]
+credsLsoaDT[, epc_D_imp := epc_D_pc * nElecMeters]
+credsLsoaDT[, epc_E_imp := epc_E_pc * nElecMeters]
+credsLsoaDT[, epc_F_imp := epc_F_pc * nElecMeters]
+credsLsoaDT[, epc_G_imp := epc_G_pc * nElecMeters]
+```
+
+Correlation between high % EPC F/G or A/B and deprivation?
+
+```{r plotEPC_pc}
+ggplot2::ggplot(credsLsoaDT, aes(x = IMDScore, y = epc_F_pc + epc_G_pc)) +
+  geom_point() +
+  geom_smooth()
+
+ggplot2::ggplot(credsLsoaDT, aes(x = IMDScore, y = epc_A_pc + epc_B_pc)) +
+  geom_point() +
+  geom_smooth()
+```
+
+Now we need to convert the % to dwellings using the number of electricity meters (see above).
+
+```{r plotEPC_impute}
+ggplot2::ggplot(credsLsoaDT, aes(x = IMDScore, y = epc_F_imp + epc_G_imp)) +
+  geom_point() +
+  geom_smooth()
+
+ggplot2::ggplot(credsLsoaDT, aes(x = IMDScore, y = epc_A_imp + epc_B_imp)) +
+  geom_point() +
+  geom_smooth()
+```
+
+## Fuel poverty
+
+2019 estimates - do we acttually use this data?
+
+Source: https://www.gov.uk/government/statistics/sub-regional-fuel-poverty-data-2021
+
+
+```{r loadBEISFP}
+data$lsoa_beis_fp <- data.table::fread(here::here("data", "LSOA_Fuel_Poverty_2019.csv.gz"))
 ```
 
 
-### Estimate Levy
+## Estimating the annual emissions levy
+
+Case studies:
+
+ * Annual carbon tax
+ * Half-hourly (real time) carbon tax (_not implemented_) - this would only affect electrcity
+
+BEIS/ETC Carbon ‘price’
+
+ * 2020 - £21.93 https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/849276/Carbon__Penalty_Price_Determination_for_2020.pdf 
+
+EU carbon ‘price’
+
+ * September 2021: €60 (£51) https://tradingeconomics.com/eecxm:ind
+
+BEIS Carbon ‘Value’ https://www.gov.uk/government/publications/valuing-greenhouse-gas-emissions-in-policy-appraisal/valuation-of-greenhouse-gas-emissions-for-policy-appraisal-and-evaluation#annex-1-carbon-values-in-2020-prices-per-tonne-of-co2
+
+ * based on a Marginal Abatement Cost (MAC)
+ * 2021: 
+    * Low: £122/T
+    * Central: £245/T <- use the central value for now
+    * High: £367/T
 
 ```{r estimateAnnualLevy}
 # carbon costs
@@ -636,225 +760,175 @@ beis_l <- 122
 beis_c <- 245
 beis_h <- 367
 
-soton_CREDS[, eu_ets_GBPtotal := CREDStotal_kgco2e/1000 * eu_ets] # £ in tonnes so /1000
-soton_CREDS[, eu_ets_GBPtotal_perdw := eu_ets_GBPtotal/nElecMeters]
+credsLsoaDT[, eu_ets_GBPtotal := CREDStotal_kgco2e/1000 * eu_ets] # £ in tonnes so /1000
+credsLsoaDT[, eu_ets_GBPtotal_perdw := eu_ets_GBPtotal/nElecMeters]
 
-soton_CREDS[, beis_GBPtotal_l := CREDStotal_kgco2e/1000 * beis_l]
-soton_CREDS[, beis_GBPtotal_l_perdw := beis_GBPtotal_l/nElecMeters]
-soton_CREDS[, beis_GBPtotal_l_gas := CREDSgas_kgco2e2018/1000 * beis_l]
-soton_CREDS[, beis_GBPtotal_l_elec := CREDSelec_kgco2e2018/1000 * beis_l]
-soton_CREDS[, beis_GBPtotal_l_gas_perdw := beis_GBPtotal_l_gas/nElecMeters]
-soton_CREDS[, beis_GBPtotal_l_elec_perdw := beis_GBPtotal_l_elec/nElecMeters]
+credsLsoaDT[, beis_GBPtotal_l := CREDStotal_kgco2e/1000 * beis_l]
+credsLsoaDT[, beis_GBPtotal_l_perdw := beis_GBPtotal_l/nElecMeters]
+credsLsoaDT[, beis_GBPtotal_l_gas := CREDSgas_kgco2e2018/1000 * beis_l]
+credsLsoaDT[, beis_GBPtotal_l_elec := CREDSelec_kgco2e2018/1000 * beis_l]
+credsLsoaDT[, beis_GBPtotal_l_gas_perdw := beis_GBPtotal_l_gas/nElecMeters]
+credsLsoaDT[, beis_GBPtotal_l_elec_perdw := beis_GBPtotal_l_elec/nElecMeters]
 
-soton_CREDS[, beis_GBPtotal_c := CREDStotal_kgco2e/1000 * beis_c]
-soton_CREDS[, beis_GBPtotal_c_perdw := beis_GBPtotal_c/nElecMeters]
-soton_CREDS[, beis_GBPtotal_c_gas := CREDSgas_kgco2e2018/1000 * beis_c]
-soton_CREDS[, beis_GBPtotal_c_elec := CREDSelec_kgco2e2018/1000 * beis_c]
-soton_CREDS[, beis_GBPtotal_c_gas_perdw := beis_GBPtotal_c_gas/nElecMeters]
-soton_CREDS[, beis_GBPtotal_c_elec_perdw := beis_GBPtotal_c_elec/nElecMeters]
+credsLsoaDT[, beis_GBPtotal_c := CREDStotal_kgco2e/1000 * beis_c]
+credsLsoaDT[, beis_GBPtotal_c_perdw := beis_GBPtotal_c/nElecMeters]
+credsLsoaDT[, beis_GBPtotal_c_gas := CREDSgas_kgco2e2018/1000 * beis_c]
+credsLsoaDT[, beis_GBPtotal_c_elec := CREDSelec_kgco2e2018/1000 * beis_c]
+credsLsoaDT[, beis_GBPtotal_c_gas_perdw := beis_GBPtotal_c_gas/nElecMeters]
+credsLsoaDT[, beis_GBPtotal_c_elec_perdw := beis_GBPtotal_c_elec/nElecMeters]
 
-soton_CREDS[, beis_GBPtotal_h := CREDStotal_kgco2e/1000 * beis_h]
-soton_CREDS[, beis_GBPtotal_h_gas := CREDSgas_kgco2e2018/1000 * beis_h]
-soton_CREDS[, beis_GBPtotal_h_elec := CREDSelec_kgco2e2018/1000 * beis_h]
-soton_CREDS[, beis_GBPtotal_h_perdw := beis_GBPtotal_h/nElecMeters]
-soton_CREDS[, beis_GBPtotal_h_gas_perdw := beis_GBPtotal_h_gas/nElecMeters]
-soton_CREDS[, beis_GBPtotal_h_elec_perdw := beis_GBPtotal_h_elec/nElecMeters]
+credsLsoaDT[, beis_GBPtotal_h := CREDStotal_kgco2e/1000 * beis_h]
+credsLsoaDT[, beis_GBPtotal_h_gas := CREDSgas_kgco2e2018/1000 * beis_h]
+credsLsoaDT[, beis_GBPtotal_h_elec := CREDSelec_kgco2e2018/1000 * beis_h]
+credsLsoaDT[, beis_GBPtotal_h_perdw := beis_GBPtotal_h/nElecMeters]
+credsLsoaDT[, beis_GBPtotal_h_gas_perdw := beis_GBPtotal_h_gas/nElecMeters]
+credsLsoaDT[, beis_GBPtotal_h_elec_perdw := beis_GBPtotal_h_elec/nElecMeters]
 
-soton_CREDS[, beis_GBPtotal_c_energy := beis_GBPtotal_c_gas + beis_GBPtotal_c_elec]
-soton_CREDS[, beis_GBPtotal_c_energy_perdw := beis_GBPtotal_c_gas_perdw + beis_GBPtotal_c_elec_perdw]
+credsLsoaDT[, beis_GBPtotal_c_energy := beis_GBPtotal_c_gas + beis_GBPtotal_c_elec]
+credsLsoaDT[, beis_GBPtotal_c_energy_perdw := beis_GBPtotal_c_gas_perdw + beis_GBPtotal_c_elec_perdw]
 ```
 
-```{r totalTOC2e}
-t <- soton_CREDS[, .(sum_TCO2e = sum(CREDStotal_kgco2e)/1000,
-            sum_TCO2e_gas = sum(CREDSgas_kgco2e2018)/1000,
-            sum_TCO2e_elec = sum(CREDSelec_kgco2e2018)/1000)]
-t
-```
 
-```{r GBP_ets}
-t <- soton_CREDS[, .(eu_ets_GBPtotal = sum(eu_ets_GBPtotal),
-            mean_eu_ets_GBPtotal_perdw = mean(eu_ets_GBPtotal_perdw))]
-
-t
-```
-
-```{r GBP_beis_l}
-t <- soton_CREDS[, .(beis_GBPtotal_l = sum(beis_GBPtotal_l),
-                     beis_GBPtotal_l_gas = sum(beis_GBPtotal_l_gas),
-                     beis_GBPtotal_l_elec = sum(beis_GBPtotal_l_elec))]
-
-t
-```
+The table below shows the ovwrall £ GBP total for the case study area in £M.
 
 ```{r GBP_beis_c}
-t <- soton_CREDS[, .(beis_GBPtotal_c = sum(beis_GBPtotal_c),
-                     beis_total_c_gas = sum(beis_GBPtotal_c_gas),
-                     beis_GBPtotal_c_elec = sum(beis_GBPtotal_c_elec))]
+m <- 1000000
+t <- credsLsoaDT[, .(beis_GBPtotal_c = sum(beis_GBPtotal_c)/m,
+                     beis_total_c_gas = sum(beis_GBPtotal_c_gas)/m,
+                     beis_GBPtotal_c_elec = sum(beis_GBPtotal_c_elec)/m)]
 
-t
+round(t,2)
 ```
 
-```{r GBP_beis_h}
-t <- soton_CREDS[, .(beis_GBPtotal_h = sum(beis_GBPtotal_h),
-                     beis_total_h_gas = sum(beis_GBPtotal_h_gas),
-                     beis_GBPtotal_h_elec = sum(beis_GBPtotal_h_elec))]
-
-t
-```
+The table below shows the mean per dwelling value rounded to the nearest £10.
 
 ```{r GBP_beis_perdw}
-t <- soton_CREDS[, .(beis_GBPtotal_l_perdw = mean(beis_GBPtotal_l_perdw),
-                     beis_GBPtotal_l_gas_perdw = mean(beis_GBPtotal_l_gas_perdw),
-                     beis_GBPtotal_l_elec_perdw = mean(beis_GBPtotal_l_elec_perdw))]
 
-t
-
-t <- soton_CREDS[, .(beis_GBPtotal_c_perdw = mean(beis_GBPtotal_c_perdw),
+t <- credsLsoaDT[, .(beis_GBPtotal_c_perdw = mean(beis_GBPtotal_c_perdw),
                      beis_GBPtotal_c_gas_perdw = mean(beis_GBPtotal_c_gas_perdw),
                      beis_GBPtotal_c_elec_perdw = mean(beis_GBPtotal_c_elec_perdw),
                      beis_GBPtotal_c_energy_perdw = mean(beis_GBPtotal_c_energy_perdw))]
 
-t
+round(t,-1)
 
-t <- soton_CREDS[, .(beis_GBPtotal_h_perdw = mean(beis_GBPtotal_h_perdw),
-                     beis_GBPtotal_h_gas_perdw = mean(beis_GBPtotal_h_gas_perdw),
-                     beis_GBPtotal_h_elec_perdw = mean(beis_GBPtotal_h_elec_perdw))]
-
-t
 ```
 
-#### Plotting the cost of carbon
 
-##### All emissions
+Figure \@ref(fig:whoWinsBEIScAll) shows the total £k per LSOA and £ per dwelling revenue using BEIS central carbon price plotted against IMD score. The tables show the LSOAs with the highest and lowest values.
 
-The cost of carbon: ETS Figure \@ref(fig:whoWinsETS)
-
-```{r whoWinsETS, fig.cap = "£k per LSOA incurred using ETS carbon price"}
-
-
-allEmissionsCap <- "All emissions (CREDS)"
+```{r whoWinsBEIScAll, fig.cap = "£k per LSOA revenue using BEIS central carbon price"}
+emissionsCap <- "All emissions"
   
-ggplot2::ggplot(soton_CREDS, aes(x = IMDScore, 
-                            y = eu_ets_GBPtotal/1000)) +
-  geom_point(aes(colour = IMD_Decile_label)) +
-  geom_smooth() +
-  scale_color_viridis_d(name = "IMD Decile") +
-  labs(y = "ETS 'carbon value' £k",
-       caption = allEmissionsCap)
-```
-
-The cost of carbon: BEIS central cost Figure \@ref(fig:whoWinsBEISc)
-
-```{r whoWinsBEISc, fig.cap = "£k per LSOA incurred using BEIS central carbon price"}
-ggplot2::ggplot(soton_CREDS, aes(x = IMDScore, 
+ggplot2::ggplot(credsLsoaDT, aes(x = IMDScore, 
                             y = beis_GBPtotal_c/1000)) +
   geom_point(aes(colour = IMD_Decile_label)) +
   geom_smooth() +
   scale_color_viridis_d(name = "IMD Decile") +
-  labs(y = "BEIS central 'carbon value' £k",
-       caption = allEmissionsCap)
+  labs(y = "BEIS central 'carbon value' £k total",
+       caption = emissionsCap)
 ggplot2::ggsave(filename = here::here("plots/whoWins_beis_GBPtotal_c.png"))
 
-ggplot2::ggplot(soton_CREDS, aes(x = IMDScore, 
+med <- median(credsLsoaDT$beis_GBPtotal_c_perdw)
+
+ggplot2::ggplot(credsLsoaDT, aes(x = IMDScore, 
                             y = beis_GBPtotal_c_perdw)) +
+  geom_hline(yintercept = med, colour = "orange") +
   geom_point(aes(colour = IMD_Decile_label)) +
   geom_smooth() +
   scale_color_viridis_d(name = "IMD Decile") +
   labs(y = "BEIS central 'carbon value' £ per dwelling",
-       caption = allEmissionsCap)
+       caption = emissionsCap)
 ggplot2::ggsave(filename = here::here("plots/whoWins_beis_GBPtotal_c_perdw.png"))
-summary(soton_CREDS$beis_GBPtotal_c_perdw)
 
-t <- soton_CREDS[, .(LSOA11CD, WD18NM, beis_GBPtotal_c, beis_GBPtotal_c_perdw)]
+summary(credsLsoaDT$beis_GBPtotal_c_perdw)
+
+t <- credsLsoaDT[, .(LSOA11CD, WD18NM, beis_GBPtotal_c, beis_GBPtotal_c_perdw)]
 
 head(t[order(-beis_GBPtotal_c_perdw)])
 
 tail(t[order(-beis_GBPtotal_c_perdw)])
 ```
 
+Figure \@ref(fig:whoWinsBEIScGas) repeats the analysis but just for gas.
 
-##### Gas emissions
+```{r whoWinsBEIScGas, fig.cap = "£k per LSOA incurred via gas using BEIS central carbon price"}
+emissionsCap <- "Emissions due to gas"
 
-The cost of carbon: BEIS lower cost Figure \@ref(fig:whoWinsBEIScGas)
-
-```{r whoWinsBEIScGas, fig.height=5, fig.cap = "£k per LSOA incurred via gas using BEIS central carbon price"}
-gasEmissionsCap <- "Emissions due to gas"
-
-ggplot2::ggplot(soton_CREDS, aes(x = IMDScore, 
+ggplot2::ggplot(credsLsoaDT, aes(x = IMDScore, 
                             y = beis_GBPtotal_c_gas/1000)) +
   geom_point(aes(size = pc_Heating_Electric, colour = IMD_Decile_label)) +
   geom_smooth() +
   scale_size_continuous(name = "% Electric heating") +
   scale_color_viridis_d(name = "IMD Decile") +
   labs(y = "BEIS central 'carbon value' £k",
-       caption = gasEmissionsCap)
+       caption = emissionsCap)
 ggplot2::ggsave(filename = here::here("plots/whoWinsBEIS_c_gas_total.png"))
 
-ggplot2::ggplot(soton_CREDS, aes(x = IMDScore, 
+med <- median(credsLsoaDT$beis_GBPtotal_c_gas_perdw)
+
+ggplot2::ggplot(credsLsoaDT, aes(x = IMDScore, 
                             y = beis_GBPtotal_c_gas_perdw)) +
+  geom_hline(yintercept = med, colour = "orange") +
   geom_point(aes(size = pc_Heating_Electric, colour = IMD_Decile_label)) +
   geom_smooth() +
   scale_size_continuous(name = "% Electric heating") +
   scale_color_viridis_d(name = "IMD Decile") +
   labs(y = "BEIS central 'carbon value' £ per dwelling",
-       caption = gasEmissionsCap)
+       caption = emissionsCap)
 ggplot2::ggsave(filename = here::here("plots/whoWinsBEIS_c_gas_perdw.png"))
 
-summary(soton_CREDS$beis_GBPtotal_c_gas_perdw)
+summary(credsLsoaDT$beis_GBPtotal_c_gas_perdw)
 ```
 
+ Figure \@ref(fig:whoWinsBEIScElec) repeats the analysis for electricity.
 
-##### Electricity emissions
+```{r whoWinsBEIScElec, fig.cap = "£k per LSOA incurred via electricity using BEIS central carbon price"}
 
-The cost of carbon: BEIS central cost Figure \@ref(fig:whoWinsBEIScElec)
+emissionsCap <- "Emissions due to electricity"
 
-```{r whoWinsBEIScElec, fig.height=5, fig.cap = "£k per LSOA incurred via electricity using BEIS central carbon price"}
-
-elecEmissionsCap <- "Emissions due to electricity"
-
-ggplot2::ggplot(soton_CREDS, aes(x = IMDScore, 
+ggplot2::ggplot(credsLsoaDT, aes(x = IMDScore, 
                             y = beis_GBPtotal_c_elec/1000)) +
   geom_point(aes(size = pc_Heating_Electric, colour = IMD_Decile_label)) +
   geom_smooth() +
   scale_size_continuous(name = "% Electric heating") +
   scale_color_viridis_d(name = "IMD Decile") +
   labs(y = "BEIS central 'carbon value' £k",
-       caption = elecEmissionsCap)
+       caption = emissionsCap)
 ggplot2::ggsave(filename = here::here("plots/whoWinsBEIS_c_elec_total.png"))
 
-ggplot2::ggplot(soton_CREDS, aes(x = IMDScore, 
+med <- median(credsLsoaDT$beis_GBPtotal_c_elec_perdw)
+
+ggplot2::ggplot(credsLsoaDT, aes(x = IMDScore, 
                             y = beis_GBPtotal_c_elec_perdw)) +
+  geom_hline(yintercept = med, colour = "orange") +
   geom_point(aes(size = pc_Heating_Electric, colour = IMD_Decile_label)) +
   geom_smooth() +
   scale_size_continuous(name = "% Electric heating") +
   scale_color_viridis_d(name = "IMD Decile") +
   labs(y = "BEIS central 'carbon value' £ per dwelling",
-       caption = elecEmissionsCap)
+       caption = emissionsCap)
 ggplot2::ggsave(filename = here::here("plots/whoWinsBEIS_c_elec_perdw.png"))
 
-summary(soton_CREDS$beis_GBPtotal_c_elec_perdw)
+summary(credsLsoaDT$beis_GBPtotal_c_elec_perdw)
 ```
 
-##### Energy emissions
+Figure \@ref(fig:whoWinsBEIScEnergy) shows the same analysis for measured energy (elec + gas)
 
-The cost of carbon: BEIS lower cost Figure \@ref(fig:whoWinsBEIScEnergy) - elec + gas
+```{r whoWinsBEIScEnergy, fig.cap = "£k per LSOA incurred via electricity and gas using BEIS central carbon price"}
 
-```{r whoWinsBEIScEnergy, fig.height=5, fig.cap = "£k per LSOA incurred via electricity using BEIS central carbon price"}
+emissionsCap <- "Emissions due to electricity & gas"
 
-elecEmissionsCap <- "Emissions due to electricity & gas"
-
-
-ggplot2::ggplot(soton_CREDS, aes(x = IMDScore, 
+ggplot2::ggplot(credsLsoaDT, aes(x = IMDScore, 
                             y = beis_GBPtotal_c_energy/1000)) +
   geom_point(aes(size = pc_Heating_Electric, colour = IMD_Decile_label)) +
   geom_smooth() +
   scale_size_continuous(name = "% Electric heating") +
   scale_color_viridis_d(name = "IMD Decile") +
   labs(y = "BEIS central 'carbon value' £k",
-       caption = elecEmissionsCap)
+       caption = emissionsCap)
 ggplot2::ggsave(filename = here::here("plots/whoWinsBEIS_c_energy_total.png"))
 
-ggplot2::ggplot(soton_CREDS, aes(x = IMDScore, 
+ggplot2::ggplot(credsLsoaDT, aes(x = IMDScore, 
                             y = beis_GBPtotal_c_energy_perdw)) +
   geom_point(aes(size = pc_Heating_Electric, colour = IMD_Decile_label)) +
   geom_smooth() +
@@ -864,7 +938,7 @@ ggplot2::ggplot(soton_CREDS, aes(x = IMDScore,
        caption = elecEmissionsCap)
 ggplot2::ggsave(filename = here::here("plots/whoWinsBEIS_c_energy_perdw.png"))
 
-summary(soton_CREDS$beis_GBPtotal_c_energy_perdw)
+summary(credsLsoaDT$beis_GBPtotal_c_energy_perdw)
 ```
 
 ### Estimate retofit costs
@@ -878,52 +952,52 @@ Excludes EPC A, B & C (assumes no need to upgrade)
 
 fromAE <- 13300
 fromFG <- 26800
-soton_CREDS[, retrofitDE := (epc_D_imp + epc_E_imp) * fromAE] # exclude epc_A_imp
-soton_CREDS[, retrofitFG := (epc_F_imp + epc_G_imp) * fromFG]
-soton_CREDS[, sumDE := (epc_D_imp + epc_E_imp)]
-soton_CREDS[, sumFG := (epc_F_imp + epc_G_imp)]
+credsLsoaDT[, retrofitDE := (epc_D_imp + epc_E_imp) * fromAE] # exclude epc_A_imp
+credsLsoaDT[, retrofitFG := (epc_F_imp + epc_G_imp) * fromFG]
+credsLsoaDT[, sumDE := (epc_D_imp + epc_E_imp)]
+credsLsoaDT[, sumFG := (epc_F_imp + epc_G_imp)]
 
-soton_CREDS[, retrofitSum := retrofitDE + retrofitFG]
-soton_CREDS[, retrofitMeanPerDw := retrofitSum/(epc_D_imp + epc_E_imp + epc_F_imp + epc_G_imp)]
+credsLsoaDT[, retrofitSum := retrofitDE + retrofitFG]
+credsLsoaDT[, retrofitMeanPerDw := retrofitSum/(epc_D_imp + epc_E_imp + epc_F_imp + epc_G_imp)]
 
 message("To retrofit D-E")
-sum(soton_CREDS$retrofitDE)
-message("Number of dwellings: ", round(sum(soton_CREDS$sumDE)))
+sum(credsLsoaDT$retrofitDE)
+message("Number of dwellings: ", round(sum(credsLsoaDT$sumDE)))
 
 message("To retrofit F-G")
-sum(soton_CREDS$retrofitFG)
-message("Number of dwellings: ", round(sum(soton_CREDS$sumFG)))
+sum(credsLsoaDT$retrofitFG)
+message("Number of dwellings: ", round(sum(credsLsoaDT$sumFG)))
 
 message("To retrofit D-G")
-sum(soton_CREDS$retrofitSum)
+sum(credsLsoaDT$retrofitSum)
 
 message("To retrofit D-G (mean per dwelling)")
-mean(soton_CREDS$retrofitMeanPerDw)
+mean(credsLsoaDT$retrofitMeanPerDw)
 
-soton_CREDS[, .(meanPerLSOA = mean(retrofitSum))]
+credsLsoaDT[, .(meanPerLSOA = mean(retrofitSum))]
 
-ggplot2::ggplot(soton_CREDS, aes(x = IMDScore, y = retrofitSum/1000000)) +
+ggplot2::ggplot(credsLsoaDT, aes(x = IMDScore, y = retrofitSum/1000000)) +
   geom_point(aes(colour = IMD_Decile_label)) +
   geom_smooth() +
   scale_color_viridis_d(name = "IMD Decile") +
   labs(y = "Total retrofit cost (£M)")
 ggplot2::ggsave(filename = here::here("plots", "sotonLSOA_retrofitSum.png"))
 
-ggplot2::ggplot(soton_CREDS, aes(x = IMD_Decile_label, 
+ggplot2::ggplot(credsLsoaDT, aes(x = IMD_Decile_label, 
                             y = retrofitSum/1000000,
                             colour = IMD_Decile_label)) +
   geom_boxplot() +
   scale_color_viridis_d(name = "IMD Decile") +
   labs(y = "Total retrofit cost (£M)")
 
-ggplot2::ggplot(soton_CREDS, aes(x = IMDScore, y = retrofitMeanPerDw)) +
+ggplot2::ggplot(credsLsoaDT, aes(x = IMDScore, y = retrofitMeanPerDw)) +
   geom_point(aes(colour = IMD_Decile_label)) +
   geom_smooth() +
   scale_color_viridis_d(name = "IMD Decile") +
   labs(y = "Mean retrofit cost per dwelling (£)")
 ggplot2::ggsave(filename = here::here("plots", "sotonLSOA_retrofit_per_dwelling.png"))
 
-ggplot2::ggplot(soton_CREDS, aes(x = IMD_Decile_label, y = retrofitMeanPerDw)) +
+ggplot2::ggplot(credsLsoaDT, aes(x = IMD_Decile_label, y = retrofitMeanPerDw)) +
   geom_boxplot() +
   labs(y = "Mean retrofit cost per dwelling (£)")
 ```
@@ -932,11 +1006,11 @@ Map cost
 
 ```{r credsLSOAMapRetrofitCost, fig.cap = "LSOA retrofit costs (upgrade EPC C to F)"}
 
-soton_CREDS_sf <- merge(map_sf, soton_CREDS, by = "LSOA11CD")
+credsLsoaDT_sf <- merge(map_sf, credsLsoaDT, by = "LSOA11CD")
 
-colCats <- colorNumeric("Reds", soton_CREDS_sf$retrofitSum, n = 9)
+colCats <- colorNumeric("Reds", credsLsoaDT_sf$retrofitSum, n = 9)
 
-leaflet(soton_CREDS_sf) %>%
+leaflet(credsLsoaDT_sf) %>%
   addTiles() %>%  # Add default OpenStreetMap map tiles
   addPolygons(color = ~colCats(retrofitSum),
               fillOpacity = 0.6, 
@@ -958,7 +1032,7 @@ leaflet(soton_CREDS_sf) %>%
 
 
 
-t <- soton_CREDS[, .(LSOA11CD, WD18NM, # NB not WD20NM
+t <- credsLsoaDT[, .(LSOA11CD, WD18NM, # NB not WD20NM
                 epc_pc_A_C = 100*(epc_A_pc + epc_B_pc + epc_C_pc),
                 retrofitSum)]
 
@@ -970,7 +1044,7 @@ head(t[order(-retrofitSum)])
 ### Compare levy with costs
 
 ```{r co2eToRettofitTotal, fig.height=5}
-ggplot2::ggplot(soton_CREDS, aes(x = beis_GBPtotal_c/1000, y = retrofitSum/1000)) +
+ggplot2::ggplot(credsLsoaDT, aes(x = beis_GBPtotal_c/1000, y = retrofitSum/1000)) +
   geom_point(aes(size = pc_Heating_Electric, colour = IMD_Decile_label)) +
   geom_smooth() +
   scale_size_continuous(name = "% Electric heating") +
@@ -980,7 +1054,7 @@ ggplot2::ggplot(soton_CREDS, aes(x = beis_GBPtotal_c/1000, y = retrofitSum/1000)
 
 ggplot2::ggsave(filename = here::here("plots/whoWins_RetrofitCost_beis_GBPtotal_c.png"))
 
-ggplot2::ggplot(soton_CREDS, aes(x = (beis_GBPtotal_c_gas + beis_GBPtotal_c_elec)/1000, y = retrofitSum/1000)) +
+ggplot2::ggplot(credsLsoaDT, aes(x = (beis_GBPtotal_c_gas + beis_GBPtotal_c_elec)/1000, y = retrofitSum/1000)) +
   geom_point(aes(size = pc_Heating_Electric, colour = IMD_Decile_label)) +
   geom_smooth() +
   scale_size_continuous(name = "% Electric heating") +
@@ -994,7 +1068,7 @@ ggplot2::ggsave(filename = here::here("plots/whoWins_RetrofitCost_beis_GBPtotal_
 Repeat per dwelling
 
 ```{r co2eToRettofitPerDwelling, fig.height=5}
-ggplot2::ggplot(soton_CREDS, 
+ggplot2::ggplot(credsLsoaDT, 
                 aes(x = beis_GBPtotal_c_perdw, y = retrofitMeanPerDw)) +
   geom_point(aes(size = pc_Heating_Electric, colour = IMD_Decile_label)) +
   geom_smooth() +
@@ -1004,7 +1078,7 @@ ggplot2::ggplot(soton_CREDS,
        y = "Mean dwelling retrofit cost (£)")
 ggplot2::ggsave(filename = here::here("plots/whoWins_RetrofitCost_beis_GBPtotal_c_perdw.png"))
 
-ggplot2::ggplot(soton_CREDS, aes(x = (beis_GBPtotal_c_gas_perdw + beis_GBPtotal_c_elec_perdw), y = retrofitMeanPerDw)) +
+ggplot2::ggplot(credsLsoaDT, aes(x = (beis_GBPtotal_c_gas_perdw + beis_GBPtotal_c_elec_perdw), y = retrofitMeanPerDw)) +
   geom_point(aes(size = pc_Heating_Electric, colour = IMD_Decile_label)) +
   geom_smooth() +
   scale_size_continuous(name = "% Electric heating") +
@@ -1020,14 +1094,14 @@ ggplot2::ggsave(filename = here::here("plots/whoWins_RetrofitCost_beis_GBPtotal_
 
 ```{r allLevyPayOff, fig.height=5}
 
-soton_CREDS[, yearsRequiredToPayRetrofit_beis_GBPtotal_c_perdw := retrofitMeanPerDw/beis_GBPtotal_c_perdw]
-summary(soton_CREDS$yearsRequiredToPayRetrofit_beis_GBPtotal_c_perdw)
+credsLsoaDT[, yearsRequiredToPayRetrofit_beis_GBPtotal_c_perdw := retrofitMeanPerDw/beis_GBPtotal_c_perdw]
+summary(credsLsoaDT$yearsRequiredToPayRetrofit_beis_GBPtotal_c_perdw)
 
-ggplot2::ggplot(soton_CREDS, aes(x = IMDScore, 
+ggplot2::ggplot(credsLsoaDT, aes(x = IMDScore, 
                             y = yearsRequiredToPayRetrofit_beis_GBPtotal_c_perdw)) +
   geom_point(aes(size = pc_Heating_Electric, colour = IMD_Decile_label)) +
   geom_smooth() +
-  geom_hline(yintercept = median(soton_CREDS$yearsRequiredToPayRetrofit_beis_GBPtotal_c_perdw), colour = "orange") +
+  geom_hline(yintercept = median(credsLsoaDT$yearsRequiredToPayRetrofit_beis_GBPtotal_c_perdw), colour = "orange") +
   scale_size_continuous(name = "% Electric heating") +
   scale_color_viridis_d(name = "IMD Decile") +
   labs(y = "Years to pay off",
@@ -1037,15 +1111,15 @@ ggplot2::ggsave(filename = here::here("plots/whoWins_yearsRequiredToPayRetrofit_
 ```
 
 ```{r energyLevyPayOff, fig.height=5}
-soton_CREDS[, yearsRequiredToPayRetrofit_beis_GBPtotal_c_energy_perdw := retrofitMeanPerDw/(beis_GBPtotal_c_gas_perdw + beis_GBPtotal_c_elec_perdw)]
+credsLsoaDT[, yearsRequiredToPayRetrofit_beis_GBPtotal_c_energy_perdw := retrofitMeanPerDw/(beis_GBPtotal_c_gas_perdw + beis_GBPtotal_c_elec_perdw)]
 
-summary(soton_CREDS$yearsRequiredToPayRetrofit_beis_GBPtotal_c_energy_perdw)
+summary(credsLsoaDT$yearsRequiredToPayRetrofit_beis_GBPtotal_c_energy_perdw)
 
-ggplot2::ggplot(soton_CREDS, aes(x = IMDScore, 
+ggplot2::ggplot(credsLsoaDT, aes(x = IMDScore, 
                             y = yearsRequiredToPayRetrofit_beis_GBPtotal_c_energy_perdw)) +
   geom_point(aes(size = pc_Heating_Electric, colour = IMD_Decile_label)) +
   geom_smooth() +
-  geom_hline(yintercept = median(soton_CREDS$yearsRequiredToPayRetrofit_beis_GBPtotal_c_energy_perdw), colour = "orange") +
+  geom_hline(yintercept = median(credsLsoaDT$yearsRequiredToPayRetrofit_beis_GBPtotal_c_energy_perdw), colour = "orange") +
   scale_size_continuous(name = "% Electric heating") +
   scale_color_viridis_d(name = "IMD Decile") +
   labs(y = "Years to pay off",
@@ -1056,7 +1130,7 @@ ggplot2::ggsave(filename = here::here("plots/whoWins_yearsRequiredToPayRetrofit_
 
 
 ```{r transferVisAll}
-plotDT <- soton_CREDS[, .(LSOA11CD, beis_GBPtotal_c, beis_GBPtotal_c_elec, beis_GBPtotal_c_gas, retrofitSum, WD18NM, IMDScore)]
+plotDT <- credsLsoaDT[, .(LSOA11CD, beis_GBPtotal_c, beis_GBPtotal_c_elec, beis_GBPtotal_c_gas, retrofitSum, WD18NM, IMDScore)]
 share_Y1_total_c <- sum(plotDT$beis_GBPtotal_c)/uniqueN(plotDT$LSOA11CD) # divide the year 1 levy equally
 share_Y1_energy_c <- (sum(plotDT$beis_GBPtotal_c_elec) + sum(plotDT$beis_GBPtotal_c_gas))/uniqueN(plotDT$LSOA11CD) # divide the year 1 levy equally
 
