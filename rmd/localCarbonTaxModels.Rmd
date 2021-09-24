@@ -5,7 +5,7 @@ author: 'Ben Anderson (b.anderson@soton.ac.uk) & Tom Rushby'
 date: 'Last run at: `r Sys.time()`'
 output:
   bookdown::html_document2:
-    self_contained: no
+    self_contained: yes
     fig_caption: yes
     code_folding: hide
     number_sections: yes
