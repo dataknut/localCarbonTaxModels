@@ -343,193 +343,6 @@ data$lsoa_creds_pbcc[, LAD11NM := LAD17NM] # for matching - beware name changes
 #summary(data$lsoa_creds_pbcc$pc_Heating_Electric)
 ```
 
-```{r credsLSOAMap, fig.cap = "LSOA CREDS total emissions per capita map (shows LSOA, MSOA, ward names and emissions per capita (T CO2e) when clicked"}
-
-
-  
-# make a temporary sf dataFrame holding just the bits we want
-map_sf <- merge(boundaries$lsoa_soton_leaflet, 
-                                       data$lsoa_creds_pbcc[, .(LSOA11CD = LSOA11, 
-                                                                CREDStotal_kgco2e_percap = total_kgco2e_percap,
-                                                                CREDSgas_percap_2018 = gas_percap_2018,
-                                                                CREDSelec_percap_2018 = elec_percap_2018,
-                                                                energy_pc, pc_Heating_Electric)],
-                                       by = "LSOA11CD")
-
-colCats <- colorNumeric("Reds", map_sf$CREDStotal_kgco2e_percap/1000, n = 9)
-
-leaflet(map_sf) %>%
-  addTiles() %>%  # Add default OpenStreetMap map tiles
-  addPolygons(color = ~colCats(CREDStotal_kgco2e_percap/1000),
-              fillOpacity = 0.6, 
-              weight = 1.5, 
-              popup = ~(paste0("LSOA: ",LSOA11NM,
-                               "<br> MSOA: " , MSOA11NM,
-                               "<br> Ward: ", WD20NM,
-                               "<br> LA: ", LAD11NM,
-                               "<br> Emissions per capita: ",CREDStotal_kgco2e_percap/1000 )
-                      ), # popups clicked
-              highlight = highlightOptions(
-                weight = 5,
-                color = "#666",
-                fillOpacity = 0.8,
-                bringToFront = TRUE))
-
-summary(map_sf$CREDStotal_kgco2e_percap)
-```
-
-```{r credsLSOAMapGas, fig.cap = "LSOA CREDS gas emissions per capita map (shows LSOA, MSOA, ward names and emissions per capita (T CO2e) when clicked"}
-
-colCats <- colorNumeric("Reds", map_sf$CREDSgas_percap_2018/1000, n = 9)
-
-leaflet(map_sf) %>%
-  addTiles() %>%  # Add default OpenStreetMap map tiles
-  addPolygons(color = ~colCats(CREDSgas_percap_2018/1000),
-              fillOpacity = 0.6, 
-              weight = 1.5, 
-              popup = ~(paste0("LSOA: ",LSOA11NM,
-                               "<br> MSOA: " , MSOA11NM,
-                               "<br> Ward: ", WD20NM,
-                               "<br> LA: ", LAD11NM,
-                               "<br> Emissions per capita: ",CREDSgas_percap_2018/1000 )
-                      ), # popups clicked
-              highlight = highlightOptions(
-                weight = 5,
-                color = "#666",
-                fillOpacity = 0.8,
-                bringToFront = TRUE))
-
-# sum of LSOA level CO2e for comparison with own estimates
-data$lsoa_creds_pbcc[, total_kgco2e_gas := gas_percap_2018 * pop_2018]
-# filter
-d <- getSoton(data$lsoa_creds_pbcc)
-message("Total CO2e per LSOA from residential gas 2018 (kg):")
-summary(d$total_kgco2e_gas)
-message("Total CO2e for Southampton from residential gas 2018 (T):")
-s <- sum(d$total_kgco2e_gas/1000)
-tidyNum(s)
-
-sotonTotalsTCO2e <- list()
-sotonTotalsTCO2e$CREDS_gas <- s
-```
-
-```{r credsLSOAMapElec, fig.cap = "LSOA CREDS electricity emissions per capita map (shows LSOA, MSOA, ward names and emissions per capita (T CO2e) when clicked"}
-colCats <- colorNumeric("Reds", map_sf$CREDSelec_percap_2018/1000, n = 9)
-
-leaflet(map_sf) %>%
-  addTiles() %>%  # Add default OpenStreetMap map tiles
-  addPolygons(color = ~colCats(CREDSelec_percap_2018/1000),
-              fillOpacity = 0.6, 
-              weight = 1.5, 
-              popup = ~(paste0("LSOA: ",LSOA11NM,
-                               "<br> MSOA: " , MSOA11NM,
-                               "<br> Ward: ", WD20NM,
-                               "<br> LA: ", LAD11NM,
-                               "<br> Elec emissions per capita: ",CREDSelec_percap_2018/1000,
-                               "<br> % Elec heat: ", round(pc_Heating_Electric), " %")
-                      ), # popups clicked
-              highlight = highlightOptions(
-                weight = 5,
-                color = "#666",
-                fillOpacity = 0.8,
-                bringToFront = TRUE))
-
-# sum of LSOA level CO2e for comparison with own estimates
-data$lsoa_creds_pbcc[, total_kgco2e_elec := elec_percap_2018 * pop_2018]
-d <- getSoton(data$lsoa_creds_pbcc)
-message("Total CO2e per LSOA from residential electricity 2018 (kg):")
-summary(d$total_kgco2e_elec)
-message("Total CO2e for Southampton from residential electricity 2018 (T):")
-s <- sum(d$total_kgco2e_elec/1000)
-tidyNum(s)
-```
-
-```{r credsLSOAMapEnergyPC, fig.cap = "LSOA CREDS gas, electricity and other heat emissions as % of total per capita (shows LSOA, MSOA, ward names and % when clicked"}
-
-colCats <- colorNumeric("Reds", map_sf$energy_pc, n = 9)
-
-leaflet(map_sf) %>%
-  addTiles() %>%  # Add default OpenStreetMap map tiles
-  addPolygons(color = ~colCats(energy_pc),
-              fillOpacity = 0.6, 
-              weight = 1.5, 
-              popup = ~(paste0("LSOA: ",LSOA11NM,
-                               "<br> MSOA: " , MSOA11NM,
-                               "<br> Ward: ", WD20NM,
-                               "<br> LA: ", LAD11NM,
-                               "<br> % of total: ",round(energy_pc), " %")
-                      ), # popups clicked
-              highlight = highlightOptions(
-                weight = 5,
-                color = "#666",
-                fillOpacity = 0.8,
-                bringToFront = TRUE))
-
-summary(map_sf$energy_pc)
-```
-
-Now let's see if we can tease out a few uncomfortable truths...
-
-First, how do per captia emissions correlate with deprivation? Note that this essentially reflects the CREDS model internals...
-
-Figure \@ref(fig:scatterIMDTotalCO2e)
-
-```{r scatterIMDTotalCO2e, fig.cap="Scatter of LSOA level total per capita emissions against IMD score - who emits?"}
-ggplot2::ggplot(map_sf, aes(x = IMDScore, y = CREDStotal_kgco2e_percap/1000)) +
-  geom_point(aes(colour = IMD_Decile_label)) +
-  geom_smooth() +
-  scale_color_viridis_d(name = "IMD Decile") +
-  labs(x = "IMD 2019 score",
-       y = "Estimated total T CO2e/capita (CREDS, 2021)")
-ggplot2::ggsave(filename = here::here("plots/scatterIMD_CREDStotal_kgco2e_percap.png"))
-```
-
-Next do the same for gas & electricity - we can and will also do this with the actual gas/elec data for 2019 (see below)
-
-Figure \@ref(fig:scatterIMDgasCO2e)
-
-```{r scatterIMDgasCO2e, fig.cap="Scatter of LSOA level gas per capita emissions against IMD score - who emits?"}
-ggplot2::ggplot(map_sf, aes(x = IMDScore, y = CREDSgas_percap_2018/1000)) +
-  geom_point(aes(size = pc_Heating_Electric, colour = IMD_Decile_label)) +
-  geom_smooth() +
-  scale_size_continuous(name = "% Electric heating") +
-  scale_color_viridis_d(name = "IMD Decile") +
-  labs(x = "IMD 2019 score",
-       y = "Estimated gas T CO2e/capita (CREDS, 2021)")
-ggplot2::ggsave(filename = here::here("plots/scatterIMD_CREDSgas_percap_2018.png"))
-```
-Figure \@ref(fig:scatterIMDelecCO2e) shows electricity - this is much flatter reflecting the non-use of electricity for heat (currently) except in a few outlier LSOAs which are both relatively low deprivation and high electric heat.
-
-Figure \@ref(fig:scatterIMDelecCO2e)
-
-```{r scatterIMDelecCO2e, fig.cap="Scatter of LSOA level elec per capita emissions against IMD score - who emits?"}
-library(viridisLite)
-ggplot2::ggplot(map_sf, aes(x = IMDScore, y = CREDSelec_percap_2018/1000)) +
-  geom_point(aes(size = pc_Heating_Electric, colour = IMD_Decile_label)) +
-  geom_smooth() +
-  scale_size_continuous(name = "% Electric heating") +
-  scale_color_viridis_d(name = "IMD Decile") +
-  labs(x = "IMD 2019 score",
-       y = "Estimated electricity T CO2e/capita (CREDS, 2021)")
-ggplot2::ggsave(filename = here::here("plots/scatterIMD_CREDSelec_percap_2018.png"))
-```
-
-Now do the same for the % of emissions from gas & electricity and other heat - this shows the % emissions left to deal with after we (may) have fixed those.
-
-Figure \@ref(fig:scatterIMDenergypc) is really interesting - it shows that the % of emissions which are due to energy goes up as deprivation increases. Except for the final two outliers...
-
-Of course we already know that gas use declines as deprivation increases.
-
-```{r scatterIMDenergypc, fig.cap="Scatter of LSOA level % emissions due to electricity & gas against IMD score"}
-ggplot2::ggplot(map_sf, aes(x = IMDScore, y = energy_pc)) +
-  geom_point(aes(size = pc_Heating_Electric, colour = IMD_Decile_label)) +
-  geom_smooth() +
-  scale_color_viridis_d(name = "IMD Decile") +
-  scale_size_continuous(name = "% Electric heating") +
-  labs(x = "IMD 2019 score",
-       y = "% total emissions which are gas, electricity or other heat (CREDS, 2021)")
-ggplot2::ggsave(filename = here::here("plots/scatterIMD_energy_pc.png"))
-```
 ## Fuel poverty
 2019 estimates
 
@@ -610,16 +423,21 @@ soton_CREDS <- getSoton(data$lsoa_creds_pbcc[, .(LAD11NM, WD18NM, LSOA11CD = LSO
                                         epc_total, epc_newbuild, epc_A, epc_B,
                                         epc_C, epc_D, epc_E, epc_F, epc_G,
                                         epc_mainfuel_electric = mainfuel_electric)])
+
 # calc totals
 soton_CREDS[, CREDStotal_kgco2e := CREDStotal_kgco2e_percap * pop_2018]
 soton_CREDS[, CREDSgas_kgco2e2018 := CREDSgas_percap_2018 * pop_2018]
 soton_CREDS[, CREDSelec_kgco2e2018 := CREDSelec_percap_2018 * pop_2018]
+soton_CREDS[, CREDSotherEnergy_kgco2e2011 := other_heat_percap_2011 * pop_2018]
+soton_CREDS[, CREDSallHomeEnergy_kgco2e2011 := CREDSotherEnergy_kgco2e2011 + CREDSgas_kgco2e2018 + CREDSelec_kgco2e2018 + CREDSotherEnergy_kgco2e2011]
+soton_CREDS[, CREDScar_kgco2e2018 := car_percap_2018 * pop_2018]
+soton_CREDS[, CREDSvan_kgco2e2018 := van_percap_2018 * pop_2018]
 
 setkey(soton_CREDS, LSOA11CD)
 message("Soton LSOAs: ")
 nrow(soton_CREDS)
 
-# get IMD etc
+# add IMD etc
 lsoa_imd2019_soton <- data$lsoa_imd2019_soton
 lsoa_imd2019_soton[, LSOA11CD := lsoa11cd]
 setkey(lsoa_imd2019_soton, LSOA11CD)
@@ -627,7 +445,9 @@ setkey(lsoa_imd2019_soton, LSOA11CD)
 soton_CREDS <- soton_CREDS[lsoa_imd2019_soton[, .(LSOA11CD, IMD_Decile, IMDScore, IMD_Decile_label)]] # reduced set of vars
 
 soton_CREDS <- soton_CREDS[energy_2019DT]
+```
 
+```{r checkDwellingCounts}
 p <- soton_CREDS[, .(BEIS_nGasMeters2019 = nGasMeters, 
                      BEIS_nElecMeters2019 = nElecMeters, 
                      CREDS_epc_total2019 = epc_total)]
@@ -689,14 +509,28 @@ ggplot2::ggplot(soton_CREDS, aes(x = IMDScore, y = epc_A_imp + epc_B_imp)) +
 
 Seems sensible...
 
-### Per dwelling scatters
+### Per dwelling emissions
 
 Redraw some of the original scatters using per dwelling instead of per capita
 
-```{r scatterIMDallCO2eperdw, fig.height = 5, fig.cap="Scatter of LSOA level all per dwelling emissions against IMD score - who emits?"}
-message("Per dwelling T CO2e - all emissions")
+```{r estimatePerDwerllingEmissions}
+
 soton_CREDS[, CREDStotal_kgco2e_pdw := CREDStotal_kgco2e/nElecMeters]
 summary(soton_CREDS$CREDStotal_kgco2e_pdw/1000)
+
+soton_CREDS[, CREDSgas_kgco2e2018_pdw := CREDSgas_kgco2e2018/nElecMeters]
+summary(soton_CREDS$CREDSgas_kgco2e2018_pdw/1000)
+
+soton_CREDS[, CREDSelec_kgco2e2018_pdw := CREDSelec_kgco2e2018/nElecMeters]
+summary(soton_CREDS$CREDSelec_kgco2e2018_pdw/1000)
+
+soton_CREDS[, CREDSenergy_kgco2e2018_pdw:= (CREDSelec_kgco2e2018/nElecMeters) + (CREDSgas_kgco2e2018/nElecMeters)]
+
+```
+
+```{r scatterIMDallCO2eperdw, fig.height = 5, fig.cap="Scatter of LSOA level all per dwelling emissions against IMD score - who emits?"}
+message("Per dwelling T CO2e - all emissions")
+
 
 ggplot2::ggplot(soton_CREDS, aes(x = IMDScore, y = CREDStotal_kgco2e_pdw/1000)) +
   geom_point(aes(size = pc_Heating_Electric, colour = IMD_Decile_label)) +
@@ -744,8 +578,7 @@ leaflet(sf) %>%
 ```{r scatterIMDgasCO2eperdw, fig.height = 5, fig.cap="Scatter of LSOA level gas per dwelling emissions against IMD score - who emits?"}
 
 message("Per dwelling T CO2e - gas emissions")
-soton_CREDS[, CREDSgas_kgco2e2018_pdw := CREDSgas_kgco2e2018/nElecMeters]
-summary(soton_CREDS$CREDSgas_kgco2e2018_pdw/1000)
+
 
 ggplot2::ggplot(soton_CREDS, aes(x = IMDScore, y = CREDSgas_kgco2e2018_pdw/1000)) +
   geom_point(aes(size = pc_Heating_Electric, colour = IMD_Decile_label)) +
@@ -763,8 +596,6 @@ cor.test(soton_CREDS$IMDScore, soton_CREDS$CREDSgas_kgco2e2018_pdw)
 ```{r scatterIMDelecCO2eperdw, fig.height = 5, fig.cap="Scatter of LSOA level elec per dwelling emissions against IMD score - who emits?"}
 
 message("Per dwelling T CO2e - elec emissions")
-soton_CREDS[, CREDSelec_kgco2e2018_pdw := CREDSelec_kgco2e2018/nElecMeters]
-summary(soton_CREDS$CREDSelec_kgco2e2018_pdw/1000)
 
 ggplot2::ggplot(soton_CREDS, aes(x = IMDScore, y = (CREDSelec_kgco2e2018/nElecMeters)/1000)) +
   geom_point(aes(size = pc_Heating_Electric, colour = IMD_Decile_label)) +
@@ -781,7 +612,6 @@ cor.test(soton_CREDS$IMDScore, soton_CREDS$CREDSelec_kgco2e2018_pdw)
 ```
 
 ```{r correlateAllandEnergyEmissions}
-soton_CREDS[, CREDSenergy_kgco2e2018_pdw:= (CREDSelec_kgco2e2018/nElecMeters) + (CREDSgas_kgco2e2018/nElecMeters)]
 
 cor.test(soton_CREDS$CREDStotal_kgco2e_pdw, soton_CREDS$CREDSenergy_kgco2e2018_pdw)
 
