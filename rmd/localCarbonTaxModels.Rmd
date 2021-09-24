@@ -597,7 +597,7 @@ Strong correlkation. So in theory we could (currently) use measured energy emiss
 
 Repeat for all home energy - includes estimates of emissions from oil etc
 
-```{r correlateAllandMeasuredEnergyEmissions}
+```{r correlateAllandHomeEnergyEmissions}
 
 cor.test(credsLsoaDT$CREDStotal_kgco2e_pdw, credsLsoaDT$CREDSallHomeEnergy_kgco2e2018_pdw)
 
@@ -935,7 +935,7 @@ ggplot2::ggplot(credsLsoaDT, aes(x = IMDScore,
   scale_size_continuous(name = "% Electric heating") +
   scale_color_viridis_d(name = "IMD Decile") +
   labs(y = "BEIS central 'carbon value' £ per dwelling",
-       caption = elecEmissionsCap)
+       caption = emissionsCap)
 ggplot2::ggsave(filename = here::here("plots/whoWinsBEIS_c_energy_perdw.png"))
 
 summary(credsLsoaDT$beis_GBPtotal_c_energy_perdw)
@@ -1006,7 +1006,7 @@ Map cost
 
 ```{r credsLSOAMapRetrofitCost, fig.cap = "LSOA retrofit costs (upgrade EPC C to F)"}
 
-credsLsoaDT_sf <- merge(map_sf, credsLsoaDT, by = "LSOA11CD")
+credsLsoaDT_sf <- merge(boundaries$lsoa_soton_leaflet, credsLsoaDT, by = "LSOA11CD")
 
 colCats <- colorNumeric("Reds", credsLsoaDT_sf$retrofitSum, n = 9)
 
@@ -1195,55 +1195,6 @@ ggplot2::ggsave(filename = here::here("plots/surplusVis_energyEmissions_c.png"))
 
 ```
 What happens in Year 2 totally depends on the rate of upgrades...
-
-## Based on gas & electricity data for 2018
-
-For comparison with the CREDS PBCC
-
-### Domestic gas
-This uses the BEIS LSOA level electricity & gas data. Note that the gas data is weather corrected.
-
-Use [BEIS 2019 conversion factors](https://www.gov.uk/government/publications/greenhouse-gas-reporting-conversion-factors-2018): 
-
-```{r setEFgas}
-co2eKg <- list()
-co2eKg$gas_use <- 0.18396
-co2eKg$gas_wtt <- 0.02557
-```
-
- *   `r co2eKg$gas_use` kg CO2e/kWh - emissions in use
- *   `r co2eKg$gas_wtt` kg CO2e/kWh (WTT - i.e. upstream processing & distribution)
-
-```{r loadLSOAGas}
-gasF <- here::here("data", "LSOA_GAS_2018.csv.gz")
-gasDT <- data.table::fread(gasF)
-gasDT[,LAD11NM := `Local Authority Name`]
-sotonGasDT <- getSoton(gasDT)
-
-sotonGasDT[, co2eKg_gas_use := `Consumption (kWh)` * co2eKg$gas_use]
-sotonGasDT[, co2eKg_gas_wtt := `Consumption (kWh)` * co2eKg$gas_wtt]
-sotonGasDT[, co2eKg_gas_total := co2eKg_gas_use + co2eKg_gas_wtt]
-
-message("N LSOAs = ", nrow(sotonGasDT))
-message("Check LA")
-sotonGasDT[, .(nLSOAs = .N,
-               totalMWh = sum(`Consumption (kWh)`/1000),
-               totalCo2eT_use = sum(co2eKg_gas_use/1000),
-               totalCo2eT_wtt = sum(co2eKg_gas_wtt/1000),
-               totalCo2eT = sum(co2eKg_gas_total/1000)), keyby = .(LAD11NM)]
-s <- sum(sotonGasDT$co2eKg_gas_total/1000)
-message("T CO2e from domestic gas in 2018: ", tidyNum(sum(sotonGasDT$co2eKg_gas_total/1000)))
-
-sotonTotalsTCO2e$BEIS_gas <- s
-message("Comparing sources")
-as.data.table(sotonTotalsTCO2e)
-```
-
-Map the carbon footprint of domestic gas use in Southampton
-
-```{r mapGasUse}
-```
-
 # R environment
 
 ## R packages used
