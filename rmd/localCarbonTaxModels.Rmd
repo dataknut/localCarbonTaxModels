@@ -56,7 +56,14 @@ rmdParams <- list()
 
 source(here::here("R", "functions.R"))
 
-# Others
+add_sf_WD20NM <- function(sf){
+  # add labels or area codes to an sf you want to map
+  sf <- merge(sf, data$lsoa_lookup_solent[, .(LSOA11CD, WD20NM)], # add ward name
+            by = "LSOA11CD")
+  return(sf)
+}
+
+# Others ----
 
 data <- list() # for holding data
 
@@ -233,7 +240,7 @@ if(st_coord_sys$epsg != 4326){
 }
 
 # merge some of the LSOA labels to the boundaries so they can be in the map pop-up
-boundaries$lsoa_soton_leaflet <- merge(boundaries$lsoa_soton_leaflet, data$lsoa_lookup_solent[, .(LSOA11CD, WD20CD, WD20NM)],
+sf <- merge(boundaries$lsoa_soton_leaflet, data$lsoa_lookup_solent[, .(LSOA11CD, WD20CD, WD20NM)],
                                        by = "LSOA11CD")
 
 leaflet(sf) %>%
@@ -297,9 +304,12 @@ These are LSOA level deprivation indices. Decile is the English & Welsh decile:
 sf <- merge(boundaries$lsoa_soton_leaflet, data$lsoa_imd2019_soton[, .(LSOA11CD= lsoa11cd, IMDScore, IMD_Decile,IMD_Decile_label)],
                                        by = "LSOA11CD")
 
+
+
+
 colCats <- colorNumeric("Reds", boundaries$lsoa_soton_leaflet$IMDScore, n = 9)
 
-leaflet(sf) %>%
+leaflet(add_sf_WD20NM(sf)) %>%
   addTiles() %>%  # Add default OpenStreetMap map tiles
   addPolygons(color = ~colCats(IMDScore),
               fillOpacity = 0.6, 
@@ -490,19 +500,21 @@ ggplot2::ggsave(filename = here::here("plots/scatterIMD_CREDStotal_kgco2e_pdw.pn
 message("Correlation test (pwcorr)")
 cor.test(credsLsoaDT$IMDScore, credsLsoaDT$CREDStotal_kgco2e_pdw)
 
-t <- credsLsoaDT[, .(LSOA11CD, All_Tco2e_per_dw = CREDStotal_kgco2e_pdw/1000)]
+t <- credsLsoaDT[, .(LSOA11CD, WD18NM, All_Tco2e_per_dw = CREDStotal_kgco2e_pdw/1000)]
 
 summary(t)
 
 head(t[order(-All_Tco2e_per_dw)])
 
 tail(t[order(-All_Tco2e_per_dw)])
+```
 
+```{r mapIMDallCO2eperdw}
 sf <- merge(boundaries$lsoa_soton_leaflet, t, by = "LSOA11CD")
 
 colCats <- colorNumeric("Reds", t$All_Tco2e_per_dw, n = 9)
 
-leaflet(sf) %>%
+leaflet(add_sf_WD20NM(sf)) %>%
   addTiles() %>%  # Add default OpenStreetMap map tiles
   addPolygons(color = ~colCats(All_Tco2e_per_dw),
               fillOpacity = 0.6, 
@@ -817,7 +829,7 @@ round(t,2)
 
 The table below shows the mean per dwelling value rounded to the nearest £10.
 
-```{r GBP_beis_perdw}
+```{r GBP_beis_c_perdw}
 
 t <- credsLsoaDT[, .(beis_GBPtotal_c_perdw = mean(beis_GBPtotal_c_perdw),
                      beis_GBPtotal_c_gas_perdw = mean(beis_GBPtotal_c_gas_perdw),
@@ -839,7 +851,7 @@ ggplot2::ggplot(credsLsoaDT, aes(x = IMDScore,
   geom_point(aes(colour = IMD_Decile_label)) +
   geom_smooth() +
   scale_color_viridis_d(name = "IMD Decile") +
-  labs(y = "BEIS central 'carbon value' £k total",
+  labs(y = "BEIS central 'carbon cost' £k total",
        caption = emissionsCap)
 ggplot2::ggsave(filename = here::here("plots/whoWins_beis_GBPtotal_c.png"))
 
@@ -851,13 +863,13 @@ ggplot2::ggplot(credsLsoaDT, aes(x = IMDScore,
   geom_point(aes(colour = IMD_Decile_label)) +
   geom_smooth() +
   scale_color_viridis_d(name = "IMD Decile") +
-  labs(y = "BEIS central 'carbon value' £ per dwelling",
+  labs(y = "BEIS central 'carbon cost' £ per dwelling",
        caption = emissionsCap)
 ggplot2::ggsave(filename = here::here("plots/whoWins_beis_GBPtotal_c_perdw.png"))
 
 summary(credsLsoaDT$beis_GBPtotal_c_perdw)
 
-t <- credsLsoaDT[, .(LSOA11CD, WD18NM, beis_GBPtotal_c, beis_GBPtotal_c_perdw)]
+t <- credsLsoaDT[, .(LSOA11CD, WD18NM, CREDStotal_kgco2e_pdw, beis_GBPtotal_c_perdw)]
 
 head(t[order(-beis_GBPtotal_c_perdw)])
 
@@ -875,7 +887,7 @@ ggplot2::ggplot(credsLsoaDT, aes(x = IMDScore,
   geom_smooth() +
   scale_size_continuous(name = "% Electric heating") +
   scale_color_viridis_d(name = "IMD Decile") +
-  labs(y = "BEIS central 'carbon value' £k",
+  labs(y = "BEIS central 'carbon cost' £k",
        caption = emissionsCap)
 ggplot2::ggsave(filename = here::here("plots/whoWinsBEIS_c_gas_total.png"))
 
@@ -888,11 +900,18 @@ ggplot2::ggplot(credsLsoaDT, aes(x = IMDScore,
   geom_smooth() +
   scale_size_continuous(name = "% Electric heating") +
   scale_color_viridis_d(name = "IMD Decile") +
-  labs(y = "BEIS central 'carbon value' £ per dwelling",
+  labs(y = "BEIS central 'carbon cost' £ per dwelling",
        caption = emissionsCap)
 ggplot2::ggsave(filename = here::here("plots/whoWinsBEIS_c_gas_perdw.png"))
 
 summary(credsLsoaDT$beis_GBPtotal_c_gas_perdw)
+
+t <- credsLsoaDT[, .(LSOA11CD, WD18NM, gasTCO2e_pdw = CREDSgas_kgco2e2018_pdw/1000, beis_GBPtotal_c_gas_perdw)]
+
+
+head(t[order(-beis_GBPtotal_c_gas_perdw)])
+
+tail(t[order(-beis_GBPtotal_c_gas_perdw)])
 ```
 
  Figure \@ref(fig:whoWinsBEIScElec) repeats the analysis for electricity.
@@ -907,7 +926,7 @@ ggplot2::ggplot(credsLsoaDT, aes(x = IMDScore,
   geom_smooth() +
   scale_size_continuous(name = "% Electric heating") +
   scale_color_viridis_d(name = "IMD Decile") +
-  labs(y = "BEIS central 'carbon value' £k",
+  labs(y = "BEIS central 'carbon cost' £k",
        caption = emissionsCap)
 ggplot2::ggsave(filename = here::here("plots/whoWinsBEIS_c_elec_total.png"))
 
@@ -920,11 +939,18 @@ ggplot2::ggplot(credsLsoaDT, aes(x = IMDScore,
   geom_smooth() +
   scale_size_continuous(name = "% Electric heating") +
   scale_color_viridis_d(name = "IMD Decile") +
-  labs(y = "BEIS central 'carbon value' £ per dwelling",
+  labs(y = "BEIS central 'carbon cost' £ per dwelling",
        caption = emissionsCap)
 ggplot2::ggsave(filename = here::here("plots/whoWinsBEIS_c_elec_perdw.png"))
 
 summary(credsLsoaDT$beis_GBPtotal_c_elec_perdw)
+
+t <- credsLsoaDT[, .(LSOA11CD, WD18NM, elecTCO2e_pdw = CREDSelec_kgco2e2018_pdw/1000, beis_GBPtotal_c_elec_perdw)]
+
+
+head(t[order(-beis_GBPtotal_c_elec_perdw)])
+
+tail(t[order(-beis_GBPtotal_c_elec_perdw)])
 ```
 
 Figure \@ref(fig:whoWinsBEIScEnergy) shows the same analysis for measured energy (elec + gas)
@@ -939,7 +965,7 @@ ggplot2::ggplot(credsLsoaDT, aes(x = IMDScore,
   geom_smooth() +
   scale_size_continuous(name = "% Electric heating") +
   scale_color_viridis_d(name = "IMD Decile") +
-  labs(y = "BEIS central 'carbon value' £k",
+  labs(y = "BEIS central 'carbon cost' £k",
        caption = emissionsCap)
 ggplot2::ggsave(filename = here::here("plots/whoWinsBEIS_c_energy_total.png"))
 
@@ -949,7 +975,7 @@ ggplot2::ggplot(credsLsoaDT, aes(x = IMDScore,
   geom_smooth() +
   scale_size_continuous(name = "% Electric heating") +
   scale_color_viridis_d(name = "IMD Decile") +
-  labs(y = "BEIS central 'carbon value' £ per dwelling",
+  labs(y = "BEIS central 'carbon cost' £ per dwelling",
        caption = emissionsCap)
 ggplot2::ggsave(filename = here::here("plots/whoWinsBEIS_c_energy_perdw.png"))
 
@@ -1025,12 +1051,12 @@ credsLsoaDT_sf <- merge(boundaries$lsoa_soton_leaflet, credsLsoaDT, by = "LSOA11
 
 colCats <- colorNumeric("Reds", credsLsoaDT_sf$retrofitSum, n = 9)
 
-leaflet(credsLsoaDT_sf) %>%
+leaflet(add_sf_WD20NM(credsLsoaDT_sf)) %>%
   addTiles() %>%  # Add default OpenStreetMap map tiles
   addPolygons(color = ~colCats(retrofitSum),
               fillOpacity = 0.6, 
               weight = 1.5, 
-              popup = ~(paste0("LSOA: ",LSOA11NM,
+              popup = ~(paste0("LSOA: ",LSOA11CD,
                                "<br> Ward: ", WD20NM,
                                "<br> % EPC A-C: ",round(100*(epc_A_pc + epc_B_pc + epc_C_pc)), " %",
                                "<br> % EPC D-E: ",round(100*(epc_D_pc + epc_E_pc)), " %", # it's actually a proportion not a %
@@ -1120,7 +1146,7 @@ ggplot2::ggplot(credsLsoaDT, aes(x = IMDScore,
   scale_size_continuous(name = "% Electric heating") +
   scale_color_viridis_d(name = "IMD Decile") +
   labs(y = "Years to pay off",
-       caption = "BEIS central carbon value, all emissions levy")
+       caption = "BEIS central carbon cost, all emissions levy")
 ggplot2::ggsave(filename = here::here("plots/whoWins_yearsRequiredToPayRetrofit_beis_GBPtotal_c_perdw.png"))
 
 ```
@@ -1138,7 +1164,7 @@ ggplot2::ggplot(credsLsoaDT, aes(x = IMDScore,
   scale_size_continuous(name = "% Electric heating") +
   scale_color_viridis_d(name = "IMD Decile") +
   labs(y = "Years to pay off",
-       caption = "BEIS central carbon value, gas emissions levy\n(excludes LSOA with 0 gas)")
+       caption = "BEIS central carbon cost, gas emissions levy\n(excludes LSOA with 0 gas)")
 ggplot2::ggsave(filename = here::here("plots/whoWins_yearsRequiredToPayRetrofit_beis_GBPtotal_c_energy_perdw.png"))
 
 ```
@@ -1164,7 +1190,7 @@ ggplot2::ggplot(plotDT, aes(x = reorder(LSOA11CD, -retrofitSum), fill = retrofit
   facet_wrap(. ~ WD18NM, scales="free_x") +
   labs(x = "LSOAs (ordered by retrofit cost)",
        y = "£M",
-       caption = "BEIS central carbon value, all emissions levy")
+       caption = "BEIS central carbon cost, all emissions levy")
 
 ggplot2::ggsave(filename = here::here("plots/transferVis_allEmissions_c.png"))
 
@@ -1177,7 +1203,7 @@ ggplot2::ggplot(plotDT, aes(x = reorder(LSOA11CD, -retrofitSum), colour = WD18NM
   scale_color_discrete(name = "Ward") +
   labs(x = "LSOAs (ordered by retrofit cost)",
        y = "Year 1 surplus (£M)",
-       caption = "BEIS central carbon value, all emissions levy")
+       caption = "BEIS central carbon cost, all emissions levy")
 ggplot2::ggsave(filename = here::here("plots/surplusVis_allEmissions_c.png"))
 ```
 
@@ -1192,7 +1218,7 @@ ggplot2::ggplot(plotDT, aes(x = reorder(LSOA11CD, -retrofitSum), fill = retrofit
   facet_wrap(. ~ WD18NM, scales="free_x") +
   labs(x = "LSOAs (ordered by retrofit cost)",
        y = "£M",
-       caption = "BEIS central carbon value, energy emissions levy")
+       caption = "BEIS central carbon cost, energy emissions levy")
 
 ggplot2::ggsave(filename = here::here("plots/transferVis_energyEmissions_c.png"))
 
@@ -1205,7 +1231,7 @@ ggplot2::ggplot(plotDT, aes(x = reorder(LSOA11CD, -retrofitSum), colour = WD18NM
   scale_color_discrete(name = "Ward") +
   labs(x = "LSOAs (ordered by retrofit cost)",
        y = "Year 1 surplus (£M)",
-       caption = "BEIS central carbon value, energy emissions levy")
+       caption = "BEIS central carbon cost, energy emissions levy")
 ggplot2::ggsave(filename = here::here("plots/surplusVis_energyEmissions_c.png"))
 
 ```
