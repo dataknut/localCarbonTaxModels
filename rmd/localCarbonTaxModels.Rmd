@@ -236,7 +236,7 @@ if(st_coord_sys$epsg != 4326){
 boundaries$lsoa_soton_leaflet <- merge(boundaries$lsoa_soton_leaflet, data$lsoa_lookup_solent[, .(LSOA11CD, WD20CD, WD20NM)],
                                        by = "LSOA11CD")
 
-leaflet(boundaries$lsoa_soton_leaflet) %>%
+leaflet(sf) %>%
   addTiles() %>%  # Add default OpenStreetMap map tiles
   addPolygons(fillOpacity = 0.2, 
               weight = 1.5, 
@@ -273,7 +273,18 @@ data$lsoa_imd2019_soton <- getSoton(data$lsoa_imd2019)
 
 message("# Southampton IMD decile counts")
 nrow(data$lsoa_imd2019_soton)
-table(data$lsoa_imd2019_soton$IMD_Decile_label) 
+t <- table(data$lsoa_imd2019_soton$IMD_Decile_label) 
+t
+prop.table(t)
+
+# check 50% most deprived
+data$lsoa_imd2019_soton[, IMD_50pc := ifelse(IMD_Decile < 6,
+                                             "50% most deprived",
+                                             "50% least deprived")]
+
+t <- table(data$lsoa_imd2019_soton$IMD_50pc) 
+t
+prop.table(t)
 ```
 
 These are LSOA level deprivation indices. Decile is the English & Welsh decile:
@@ -283,12 +294,12 @@ These are LSOA level deprivation indices. Decile is the English & Welsh decile:
 
 ```{r imdLSOAMap, fig.cap = "LSOA IMD map (shows LSOA, MSOA, ward names and IMD decile when clicked"}
 
-boundaries$lsoa_soton_leaflet <- merge(boundaries$lsoa_soton_leaflet, data$lsoa_imd2019_soton[, .(LSOA11CD= lsoa11cd, IMDScore, IMD_Decile,IMD_Decile_label)],
+sf <- merge(boundaries$lsoa_soton_leaflet, data$lsoa_imd2019_soton[, .(LSOA11CD= lsoa11cd, IMDScore, IMD_Decile,IMD_Decile_label)],
                                        by = "LSOA11CD")
 
 colCats <- colorNumeric("Reds", boundaries$lsoa_soton_leaflet$IMDScore, n = 9)
 
-leaflet(boundaries$lsoa_soton_leaflet) %>%
+leaflet(sf) %>%
   addTiles() %>%  # Add default OpenStreetMap map tiles
   addPolygons(color = ~colCats(IMDScore),
               fillOpacity = 0.6, 
@@ -365,7 +376,7 @@ lsoa_lookup_solent <- data$lsoa_lookup_solent
 setkey(lsoa_lookup_solent, LSOA11CD)
 
 setkey(credsLsoaDT, LSOA11CD)
-credsLsoaDT <- credsLsoaDT[lsoa_lookup_solent[, .(LSOA11CD, RUC11, oacSuperGroupName = `Supergroup Name`)]]
+credsLsoaDT <- credsLsoaDT[lsoa_lookup_solent[, .(LSOA11CD, LSOA11NM, WD20CD, RUC11, oacSuperGroupName = `Supergroup Name`)]]
 
 credsLsoaDT <- credsLsoaDT[lsoa_imd2019_soton[, .(LSOA11CD, IMD_Decile, IMDScore, IMD_Decile_label)]] # reduced set of vars
 
@@ -447,7 +458,7 @@ credsLsoaDT[, CREDSvan_kgco2e2018_pdw:= CREDSvan_kgco2e2018/nElecMeters]
 
 credsLsoaDT[, CREDSpersonalTransport_kgco2e2018_pdw:= (CREDScar_kgco2e2018 + CREDSvan_kgco2e2018)/nElecMeters]
 
-t <- summary(credsLsoaDT[, .(CREDStotal_kgco2e_pdw,CREDSgas_kgco2e2018_pdw,CREDSelec_kgco2e2018_pdw,
+t <- skimr::skim(credsLsoaDT[, .(CREDStotal_kgco2e_pdw,CREDSgas_kgco2e2018_pdw,CREDSelec_kgco2e2018_pdw,
                              CREDSmeasuredHomeEnergy_kgco2e2018_pdw,
                              CREDSotherEnergy_kgco2e2011_pdw, CREDSallHomeEnergy_kgco2e2018_pdw,
                              CREDScar_kgco2e2018_pdw, CREDSvan_kgco2e2018_pdw, CREDSpersonalTransport_kgco2e2018_pdw) ])
@@ -479,7 +490,9 @@ ggplot2::ggsave(filename = here::here("plots/scatterIMD_CREDStotal_kgco2e_pdw.pn
 message("Correlation test (pwcorr)")
 cor.test(credsLsoaDT$IMDScore, credsLsoaDT$CREDStotal_kgco2e_pdw)
 
-t <- credsLsoaDT[, .(LSOA11CD, WD18NM, All_Tco2e_per_dw = CREDStotal_kgco2e_pdw/1000)]
+t <- credsLsoaDT[, .(LSOA11CD, All_Tco2e_per_dw = CREDStotal_kgco2e_pdw/1000)]
+
+summary(t)
 
 head(t[order(-All_Tco2e_per_dw)])
 
@@ -516,6 +529,8 @@ Figure \@ref(fig:visIMDgasCO2eperdw) uses the same plotting method to show emiss
 ```{r visIMDgasCO2eperdw, fig.height = 5, fig.cap="Scatter of LSOA level gas per dwelling emissions against IMD score"}
 
 message("Per dwelling T CO2e - gas emissions")
+
+summary(credsLsoaDT$CREDSgas_kgco2e2018_pdw)
 
 ggplot2::ggplot(credsLsoaDT, aes(x = IMDScore, y = CREDSgas_kgco2e2018_pdw/1000)) +
   geom_point(aes(size = pc_Heating_Electric, colour = IMD_Decile_label)) +
@@ -720,7 +735,7 @@ ggplot2::ggplot(credsLsoaDT, aes(x = IMDScore, y = epc_A_imp + epc_B_imp)) +
 
 ## Fuel poverty
 
-2019 estimates - do we acttually use this data?
+2019 estimates - do we actually use this data?
 
 Source: https://www.gov.uk/government/statistics/sub-regional-fuel-poverty-data-2021
 
@@ -735,7 +750,7 @@ data$lsoa_beis_fp <- data.table::fread(here::here("data", "LSOA_Fuel_Poverty_201
 Case studies:
 
  * Annual carbon tax
- * Half-hourly (real time) carbon tax (_not implemented_) - this would only affect electrcity
+ * Half-hourly (real time) carbon tax (_not implemented_) - this would only affect electricity
 
 BEIS/ETC Carbon ‘price’
 
@@ -789,7 +804,7 @@ credsLsoaDT[, beis_GBPtotal_c_energy_perdw := beis_GBPtotal_c_gas_perdw + beis_G
 ```
 
 
-The table below shows the ovwrall £ GBP total for the case study area in £M.
+The table below shows the overall £ GBP total for the case study area in £M.
 
 ```{r GBP_beis_c}
 m <- 1000000
