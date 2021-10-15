@@ -43,12 +43,12 @@ laDT[, subSectorLabel := ifelse(subSectorLabel == "Diesel Railways",
 ]
 table(laDT$subSectorLabel)
 
-esdcDT <- laDT[`Local Authority` %like% "Hampshire"] 
+subsetDT <- laDT[`Local Authority` %like% "Hampshire"] 
 
-nrow(esdcDT)
+nrow(subsetDT)
 
 # test
-esdcDT[, .(n = .N), keyby = .(`Local Authority`, `Calendar Year`)]
+subsetDT[, .(n = .N), keyby = .(`Local Authority`, `Calendar Year`)]
 
 # colours borrowed from https://git.soton.ac.uk/twr1m15/la_emissions_viz/-/blob/master/shiny/app.R
 # for details, use set for each sector
@@ -62,7 +62,15 @@ lulucf_pal <- brewer.pal(n = 9, name = "Greens")[4:9]     # lulucf greens, 6 cat
 # for details, combine sets
 detailed_pal <- c(commercial_pal, domestic_pal, industry_pal, lulucf_pal, public_pal, transport_pal)
 
-p <- ggplot2::ggplot(esdcDT, aes(x = `Calendar Year`, y = `Territorial emissions (kt CO2)`,
+laDT[, subSectorLabelFact := factor(subSectorLabel)]
+
+catList <- unique(laDT$subSectorLabelFact) # this is not alphabetical - why?
+
+catList2 <- c(catList[1:15],catList[25] , catList[16:24])
+
+names(detailed_pal) <- catList2
+
+p <- ggplot2::ggplot(subsetDT, aes(x = `Calendar Year`, y = `Territorial emissions (kt CO2)`,
                             fill = subSectorLabel,
                             colour = subSectorLabel)) +
   geom_col(position = "stack") +
@@ -70,6 +78,9 @@ p <- ggplot2::ggplot(esdcDT, aes(x = `Calendar Year`, y = `Territorial emissions
   scale_fill_manual(values = detailed_pal) #
 p
 
+# check
+table(subsetDT$`Local Authority`)
+
 plotly::ggplotly(p)
 
-data.table::fwrite(esdcDT, file = paste0(params$dataPath, "2005-19_Local_Authority_CO2_emissions_ESDC.csv"))
+#data.table::fwrite(esdcDT, file = paste0(params$dataPath, "2005-19_Local_Authority_CO2_emissions_ESDC.csv"))
