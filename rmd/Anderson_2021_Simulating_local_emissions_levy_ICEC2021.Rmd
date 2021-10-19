@@ -1114,7 +1114,7 @@ sum(credsLsoaDT$retrofitSum)/1000000
 message("To retrofit D-G (mean per dwelling £k)")
 mean(credsLsoaDT$retrofitMeanPerDw)/1000
 
-credsLsoaDT[, .(meanRetrofitPerLSOA = mean(retrofitSum),
+credsLsoaDT[, .(meanRetrofitPerLSOA = mean(retrofitSum)/1000,
                 totalRetrofit = sum(retrofitSum))]
 ```
 
