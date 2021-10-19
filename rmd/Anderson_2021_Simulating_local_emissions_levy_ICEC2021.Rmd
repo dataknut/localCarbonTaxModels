@@ -1081,8 +1081,8 @@ credsLsoaDT[, .(nLSOAs = .N, sumAllConsEmissions_GBP = sum(beis_GBPtotal_sc2)/10
 
 ### Estimate retofit costs
 
-fromAE <- 13300
-fromFG <- 26800
+ * from A-E <- 13300
+ * from F-G <- 26800
 
 Excludes EPC A, B & C (assumes no need to upgrade)
 
@@ -1097,24 +1097,30 @@ credsLsoaDT[, sumFG := (epc_F_imp + epc_G_imp)]
 
 credsLsoaDT[, retrofitSum := retrofitDE + retrofitFG]
 credsLsoaDT[, retrofitMeanPerDw := retrofitSum/(epc_D_imp + epc_E_imp + epc_F_imp + epc_G_imp)]
+```
 
-message("To retrofit D-E")
-sum(credsLsoaDT$retrofitDE)
+```{r reportRetrofitTotals}
+message("To retrofit D-E (£m)")
+sum(credsLsoaDT$retrofitDE)/1000000
 message("Number of dwellings: ", round(sum(credsLsoaDT$sumDE)))
 
-message("To retrofit F-G")
-sum(credsLsoaDT$retrofitFG)
+message("To retrofit F-G (£m)")
+sum(credsLsoaDT$retrofitFG)/1000000
 message("Number of dwellings: ", round(sum(credsLsoaDT$sumFG)))
 
-message("To retrofit D-G")
-sum(credsLsoaDT$retrofitSum)
+message("To retrofit D-G (£m)")
+sum(credsLsoaDT$retrofitSum)/1000000
 
-message("To retrofit D-G (mean per dwelling)")
-mean(credsLsoaDT$retrofitMeanPerDw)
+message("To retrofit D-G (mean per dwelling £k)")
+mean(credsLsoaDT$retrofitMeanPerDw)/1000
 
-credsLsoaDT[, .(meanPerLSOA = mean(retrofitSum),
-                totalPerLSOA = sum(retrofitSum))]
+credsLsoaDT[, .(meanRetrofitPerLSOA = mean(retrofitSum),
+                totalRetrofit = sum(retrofitSum))]
+```
 
+Plot retrofit costs
+
+```{r plotRetrofitCosts}
 ggplot2::ggplot(credsLsoaDT, aes(x = IMDScore, y = retrofitSum/1000000)) +
   geom_point(aes(colour = IMD_Decile_label)) +
   geom_smooth() +
@@ -1141,7 +1147,7 @@ ggplot2::ggplot(credsLsoaDT, aes(x = IMD_Decile_label, y = retrofitMeanPerDw)) +
   labs(y = "Mean retrofit cost per dwelling (£)")
 ```
 
-Map cost
+Map retrofit costs
 
 ```{r credsLSOAMapRetrofitCost, fig.cap = "LSOA retrofit costs (upgrade EPC C to F)"}
 
