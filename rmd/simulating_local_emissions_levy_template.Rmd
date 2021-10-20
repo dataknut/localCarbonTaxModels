@@ -41,6 +41,7 @@ knitr::opts_chunk$set(warning = FALSE)
 # Libraries used only in rmd ----
 myLibs <- c("flextable",
             "ggplot2",
+            "lubridate",
             "skimr",
             "viridisLite")
 
@@ -52,6 +53,7 @@ rmdParams <- list()
 
 capFilter <- paste0("LSOAs: ", rParams$filter) # for plots
 
+reportLink <- paste0("https://dataknut.github.io/localCarbonTaxModels/", rmdFile, "_",rParams$filter,".html")
 # Functions ----
 
 ```
@@ -60,19 +62,33 @@ capFilter <- paste0("LSOAs: ", rParams$filter) # for plots
 
 # About
 
-Paper prepared for the 2021 [International Conference on Evolving Cities](https://evolvingcities.org/), University of Southampton, 22 – 24 September 2021.
+This report is based on a model described in a paper presented at the 2021 [International Conference on Evolving Cities](https://evolvingcities.org/), University of Southampton, 22 – 24 September 2021.
 
-# Citation
+If you want to cite the method/model please use:
 
-Anderson, B. (2021). [Simulating the consequences of an emissions levy at the city and neighbourhood scale](https://eprints.soton.ac.uk/451507/). Paper presented at International Conference on Evolving Cities, Southampton, United Kingdom
+Anderson, B. (2021). [Simulating the consequences of an emissions levy at the city and neighbourhood scale](https://eprints.soton.ac.uk/451507/). *Paper presented at the International Conference on Evolving Cities, MAST Mayflower Studios, Southampton, United Kingdom. 22 - 24 Sep 2021*.
+
+# Citing this report
+
+If you wish to re-use material from this report please cite it as:
+
+`r params$authors` (`r lubridate::year(today())`) [`r params$title` : `r rParams$filter`](`r reportLink`).  University of Southampton, United Kingdom
+
+License: [CC-BY](https://creativecommons.org/licenses/by/4.0/)
+
+Share, adapt, give attribution.
 
 # Introduction
 
 Background blurb about emissions, retofit, carbon tax/levy etc
 
-# Emissions Levy Case Study
+# Emissions Levy Case Study: `r rParams$filter``
 
-In the reminder of this paper we develop a model of an emissions levy using LSOA level data on emissions derived from the CREDS place-based emissions calculator. We apply carbon 'values' to a number of emissions categories to estimate the levy revenue that would be generated for each LSOA in year 1 of such a levy. We then sum these values to given an overall levy revenue estimate for the area in the case study.
+In the reminder of this paper we develop a model of an emissions levy using LSOA level data on emissions derived from the CREDS place-based emissions calculator. 
+
+
+
+We apply carbon 'values' to a number of emissions categories to estimate the levy revenue that would be generated for each LSOA in year 1 of such a levy. We then sum these values to given an overall levy revenue estimate for the area in the case study.
 
 We then use estimates of the cost of retrofitting EPC band dwellings D-E and F-G together with estimates of the number of such dwellings in each of the LSOAs to calculate the likely cost of such upgrades in each LSOA and for the whole area in the case study.
 
