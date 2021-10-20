@@ -36,14 +36,11 @@ knitr::opts_chunk$set(warning = FALSE)
 
 # Libraries ----
 library(dkUtils) # see https://github.com/dataknut/dkUtils
-myLibs <- c("tidyverse", # load first so that data.table masks (we only use tidyverse in one context - to filter sf)
-            "data.table",
+myLibs <- c("data.table",
           "flextable",
           "ggplot2",
           "here",
-          "leaflet",
           "skimr",
-          "sf",
           "viridisLite")
 
 dkUtils::loadLibraries(myLibs)
@@ -55,13 +52,6 @@ rmdParams <- list()
 # Functions ----
 
 source(here::here("R", "functions.R"))
-
-add_sf_WD20NM <- function(sf){
-  # add labels or area codes to an sf you want to map
-  sf <- merge(sf, data$lsoa_lookup_solent[, .(LSOA11CD, WD20NM)], # add ward name
-            by = "LSOA11CD")
-  return(sf)
-}
 
 # Others ----
 
@@ -712,11 +702,11 @@ ggplot2::ggsave(filename = here::here("plots/allLSOAs_whoWins_beis_GBPtotal_c_pe
 
 summary(credsLsoaDT$beis_GBPtotal_c_perdw)
 
-t <- credsLsoaDT[, .(LSOA11CD, LSOA01NM, WD18NM, CREDStotal_kgco2e_pdw, beis_GBPtotal_c_perdw)]
+t <- credsLsoaDT[, .(LSOA11CD, LSOA01NM, WD18NM, IMD_Decile_label, CREDStotal_kgco2e_pdw, beis_GBPtotal_c_perdw)]
 
-head(t[order(-beis_GBPtotal_c_perdw)])
+flextable(head(t[order(-beis_GBPtotal_c_perdw)]))
 
-tail(t[order(-beis_GBPtotal_c_perdw)])
+flextable(tail(t[order(-beis_GBPtotal_c_perdw)]))
 ```
 
 Figure \@ref(fig:whoWinsBEIScGas) repeats the analysis but just for gas. 
@@ -751,12 +741,12 @@ ggplot2::ggsave(filename = here::here("plots/allLSOAs_whoWinsBEIS_c_gas_perdw.pn
 
 summary(credsLsoaDT$beis_GBPtotal_c_gas_perdw)
 
-t <- credsLsoaDT[, .(LSOA11CD, LSOA01NM,WD18NM, gasTCO2e_pdw = CREDSgas_kgco2e2018_pdw/1000, beis_GBPtotal_c_gas_perdw)]
+t <- credsLsoaDT[, .(LSOA11CD, LSOA01NM,WD18NM, IMD_Decile_label, gasTCO2e_pdw = CREDSgas_kgco2e2018_pdw/1000, beis_GBPtotal_c_gas_perdw)]
 
 
-head(t[order(-beis_GBPtotal_c_gas_perdw)])
+flextable(head(t[order(-beis_GBPtotal_c_gas_perdw)]))
 
-tail(t[order(-beis_GBPtotal_c_gas_perdw)])
+flextable(tail(t[order(-beis_GBPtotal_c_gas_perdw)]))
 ```
 
  Figure \@ref(fig:whoWinsBEIScElec) repeats the analysis for electricity.
@@ -790,12 +780,12 @@ ggplot2::ggsave(filename = here::here("plots/allLSOAs_whoWinsBEIS_c_elec_perdw.p
 
 summary(credsLsoaDT$beis_GBPtotal_c_elec_perdw)
 
-t <- credsLsoaDT[, .(LSOA11CD, LSOA01NM, WD18NM, elecTCO2e_pdw = CREDSelec_kgco2e2018_pdw/1000, beis_GBPtotal_c_elec_perdw)]
+t <- credsLsoaDT[, .(LSOA11CD, LSOA01NM, WD18NM, IMD_Decile_label, elecTCO2e_pdw = CREDSelec_kgco2e2018_pdw/1000, beis_GBPtotal_c_elec_perdw)]
 
 
-head(t[order(-beis_GBPtotal_c_elec_perdw)])
+flextable(head(t[order(-beis_GBPtotal_c_elec_perdw)]))
 
-tail(t[order(-beis_GBPtotal_c_elec_perdw)])
+flextable(tail(t[order(-beis_GBPtotal_c_elec_perdw)]))
 ```
 
 Figure \@ref(fig:whoWinsBEIScEnergy) shows the same analysis for measured energy (elec + gas)
