@@ -70,7 +70,7 @@ Anderson, B. (2021). [Simulating the consequences of an emissions levy at the ci
 
 Background blurb about emissions, retofit, carbon tax/levy etc
 
-# Emissions Levy Case Study - All LSOAs
+# Emissions Levy Case Study
 
 In the reminder of this paper we develop a model of an emissions levy using LSOA level data on emissions derived from the CREDS place-based emissions calculator. We apply carbon 'values' to a number of emissions categories to estimate the levy revenue that would be generated for each LSOA in year 1 of such a levy. We then sum these values to given an overall levy revenue estimate for the area in the case study.
 
@@ -78,7 +78,7 @@ We then use estimates of the cost of retrofitting EPC band dwellings D-E and F-G
 
 We then compare the distributions of the two to understand whether sufficient revenue would be generated within each LSOA to enable the per-LSOA or whole case study area costs of the energy efficiency upgrades to be met. In doing so we also analyse the extent to which redistribution of revenue from high emissions areas (households) would be required. 
 
-It should be noted that this is area level analysis using mean emissions per household. It will not capture within-LSOA hetergeneity in emissions and so will almost certaonly underestimate the range of the household level emissions levy value.
+It should be noted that this is area level analysis using mean emissions per household. It will not capture within-LSOA heterogeneity in emissions and so will almost certainly underestimate the range of the household level emissions levy value.
 
 > NB: no maps in the interests of speed
 
@@ -93,7 +93,7 @@ We will use a number of Lower Layer Super Output Area (LSOA) level datasets to a
  
 > All analysis is at LSOA level. Cautions on inference from area level data apply.
 
-## CREDS place-based emmissions estimates
+## CREDS place-based emissions estimates
 
 See https://www.creds.ac.uk/why-we-built-a-place-based-carbon-calculator/
 
@@ -508,11 +508,11 @@ The table below shows the overall £ GBP total for the case study area in £M.
 
 ```{r scenario1Totals}
 m <- 1000000
-message("£m")
+message("£m total")
 selectedLsoasDT[, .(nLSOAs = .N, beis_GBPtotal_c = sum(beis_GBPtotal_c)/m,
                      beis_total_c_gas = sum(beis_GBPtotal_c_gas)/m,
                      beis_GBPtotal_c_elec = sum(beis_GBPtotal_c_elec)/m)]
-message("£m")
+message("£m by regions covered")
 t <- selectedLsoasDT[, .(nLSOAs = .N, beis_GBPtotal_c = sum(beis_GBPtotal_c)/m,
                      beis_total_c_gas = sum(beis_GBPtotal_c_gas)/m,
                      beis_GBPtotal_c_elec = sum(beis_GBPtotal_c_elec)/m), keyby = .(region)]
@@ -871,14 +871,14 @@ ggplot2::ggplot(selectedLsoasDT, aes(x = beis_GBPtotal_c_elec/1000000, y = beis_
 ```
 
 ```{r scenario2Totals}
-message("£m")
+message("£m total")
 m <- 1000000
 selectedLsoasDT[, .(nLSOAs = .N, sumAllConsEmissions_GBP = sum(beis_GBPtotal_sc2)/m,
                 sumGasEmissions_GBP = sum(beis_GBPgas_sc2)/m,
                 sumElecEmissions_GBP = sum(beis_GBPelec_sc2)/m,
                 sumPop = sum(pop_2018))]
-message("£m")
 
+message("£m total by regions covered")
 t <- selectedLsoasDT[, .(nLSOAs = .N, sumAllConsEmissions_GBP = sum(beis_GBPtotal_sc2)/m,
                 sumGasEmissions_GBP = sum(beis_GBPgas_sc2)/m,
                 sumElecEmissions_GBP = sum(beis_GBPelec_sc2)/m,
