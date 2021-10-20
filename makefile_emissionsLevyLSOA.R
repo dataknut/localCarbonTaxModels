@@ -137,7 +137,7 @@ makeReport(filter = "All English LSOAs")
 
 # 
 filterList <- c("Southampton","Newham", "Winchester","Portsmouth", "Eastleigh",
-                "Wight", "New Forest", "Havant", "Mere", "Basingstoke")
+                "Wight", "New Forest", "Havant")
 
 for(filter in filterList){
   message("Filter: ", filter)
