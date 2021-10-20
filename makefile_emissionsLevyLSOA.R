@@ -10,23 +10,36 @@ dkUtils::loadLibraries(myLibs)
 # functions ----
 source(here::here("R", "functions.R"))
 
-makeReport <- function(f,filter){
+makeReport <- function(filter){
+  # filter data here if needed ----
+  
+  if(filter == "All English LSOAs"){
+    selectedLsoasDT <- credsLsoaDT 
+    message("Filter: ", filter)
+  } else { # filter
+    message("Filter: ", filter)
+    selectedLsoasDT <- credsLsoaDT[LAD11NM %like% filter]
+  }
+  message("Selected rows:")
+  nrow(selectedLsoasDT)
+  
+  # > run report ----
+  rmdFile <- "simulating_local_emissions_levy_template" # not the full path
+  title = "Simulating a local emissions levy to fund local energy effiency retrofit"
+  subtitle <- paste0("Focus on: ", filter)
+  authors = "Ben Anderson"
+  rParams$filter <- filter # used in Rmd
   # default = html
-  rmarkdown::render(input = paste0(here::here("rmd", f), ".Rmd"),
+  rmarkdown::render(input = paste0(here::here("rmd", rmdFile), ".Rmd"),
                     params = list(title = title,
                                   subtitle = subtitle,
                                   authors = authors),
-                    output_file = paste0(here::here("docs/"), f, "_",filter,".html")
+                    output_file = paste0(here::here("docs/"), rmdFile, "_",filter,".html")
   )
 }
 
 # parameters ----
 rParams <- list() # params used in R or Rmd scripts
-
-# > set filer here ----
-rParams$filter <- "Winchester" # search string used to filter LA name thus: LAD11NM %like% <filter>
-#rParams$filter <- "All English LSOAs"
-# if it's "All English LSOAs" we don't filter
 
 # load the datasets we use and do generic data processing here ----
 
@@ -117,23 +130,16 @@ credsLsoaDT <- dt[credsLsoaDT]
 # directly check LAs included (first 6 rows of table)
 head(table(credsLsoaDT$LAD11NM))
 
-# filter data here if needed ----
+# run the report
+# > set filter here ----
+# if it's "All English LSOAs" we don't filter
+makeReport(filter = "All English LSOAs")
 
-if(rParams$filter == "All English LSOAs"){
-  selectedLsoasDT <- credsLsoaDT 
-  message("Filter: ", rParams$filter)
-} else { # filter
-  message("Filter: ", rParams$filter)
-  selectedLsoasDT <- credsLsoaDT[LAD11NM %like% rParams$filter]
+# 
+filterList <- c("Southampton","Newham", "Winchester","Portsmouth", "Eastleigh",
+                "Wight", "New Forest", "Havant", "Mere", "Basingstoke")
+
+for(filter in filterList){
+  message("Filter: ", filter)
+  makeReport(filter = filter)
 }
-message("Selected rows:")
-nrow(selectedLsoasDT)
-
-# >> run report ----
-rmdFile <- "simulating_local_emissions_levy_template" # not the full path
-title = "Simulating a local emissions levy to fund local energy effiency retrofit"
-subtitle <- paste0("Focus on: ", rParams$filter)
-authors = "Ben Anderson"
-
-makeReport(f = rmdFile, filter = rParams$filter)
-
