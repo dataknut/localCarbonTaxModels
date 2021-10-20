@@ -23,8 +23,8 @@ makeReport <- function(f,filter){
 # parameters ----
 rParams <- list() # params used in R or Rmd scripts
 
-# > set filer ----
-rParams$filter <- "Southampton" # search string used to filter LA name thus: LAD11NM %like% <filter>
+# > set filer here ----
+rParams$filter <- "Winchester" # search string used to filter LA name thus: LAD11NM %like% <filter>
 #rParams$filter <- "All English LSOAs"
 # if it's "All English LSOAs" we don't filter
 
