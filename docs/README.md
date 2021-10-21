@@ -10,6 +10,6 @@ Example:
 
 Code:
 
- * https://github.com/dataknut/localCarbonTaxModels
+ * [https://github.com/dataknut/localCarbonTaxModels](https://github.com/dataknut/localCarbonTaxModels)
  
 If you would be interested in seeing a similar report for you local authority (or some other level of geography) please let us know by [raising a request](https://github.com/dataknut/localCarbonTaxModels/labels/new_area_request) using the `new_area_request` label.
