@@ -69,6 +69,8 @@ If you want to cite the method/model please use:
 
 Anderson, B. (2021). [Simulating the consequences of an emissions levy at the city and neighbourhood scale](https://eprints.soton.ac.uk/451507/). *Paper presented at the International Conference on Evolving Cities, MAST Mayflower Studios, Southampton, United Kingdom. 22 - 24 Sep 2021*.
 
+If you are interested in how the model works start from  https://dataknut.github.io/localCarbonTaxModels/
+
 # Citing this data notebook
 
 If you wish to re-use material from this data notebook please cite it as:
