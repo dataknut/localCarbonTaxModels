@@ -8,4 +8,4 @@ Example:
 
  * [Southampton](simulating_local_emissions_levy_template_Southampton.html) City Council (as presented at [ICEC 2021](https://eprints.soton.ac.uk/451507/))
  
- If you would be interested in seeing a similar report for you local authority (or some other level of geograpy) please let us know by [raising a request](https://github.com/dataknut/localCarbonTaxModels/labels/new_area_request) using the `new_area_request` label.
+ If you would be interested in seeing a similar report for you local authority (or some other level of geography) please let us know by [raising a request](https://github.com/dataknut/localCarbonTaxModels/labels/new_area_request) using the `new_area_request` label.
