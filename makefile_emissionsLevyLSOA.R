@@ -25,7 +25,7 @@ makeReport <- function(filter){
   
   # > run report ----
   rmdFile <- "simulating_local_emissions_levy_template" # not the full path
-  title = "Simulating a local emissions levy to fund local energy effiency retrofit"
+  title = "Data notebook: Simulating a local emissions levy to fund local energy effiency retrofit"
   subtitle <- paste0("Focus on: ", filter)
   authors = "Ben Anderson"
   rParams$filter <- filter # used in Rmd
@@ -133,13 +133,17 @@ head(table(credsLsoaDT$LAD11NM))
 # run the report
 # > set filter here ----
 # if it's "All English LSOAs" we don't filter
-makeReport(filter = "All English LSOAs")
-
-# 
+# we could use a list of all LAs but that would take a while...
 filterList <- c("Southampton","Newham", "Winchester","Portsmouth", "Eastleigh",
                 "Wight", "New Forest", "Havant")
 
 for(filter in filterList){
   message("Filter: ", filter)
+  rParams$filter <- filter # gets used in rmd
   makeReport(filter = filter)
 }
+
+makeReport(filter = "All English LSOAs")
+
+#makeReport(filter = "Southampton")
+
