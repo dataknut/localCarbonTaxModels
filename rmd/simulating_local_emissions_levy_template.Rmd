@@ -972,7 +972,9 @@ ggplot2::ggplot(selectedLsoasDT, aes(x = IMDScore, y = epc_A_imp + epc_B_imp)) +
   geom_smooth()
 ```
 
-### Estimate costs
+### Estimate costs - sheep dip D to G
+
+Upgrade all D-G
 
 ```{r estRetrofitCosts}
 
@@ -1044,6 +1046,13 @@ ggplot2::ggplot(selectedLsoasDT, aes(x = IMDScore, y = retrofitMeanPerDw)) +
        caption = capFilter)
 #ggplot2::ggsave(filename = here::here("plots", "allLSOAs_retrofit_per_dwelling.png"))
 ```
+
+
+### Estimate costs - sheep dip D to G but upgrades in 20% poorest areas funded by HM Gov (somehow)
+
+Set aside areas in IMD decile 1 & 2? Assume costs met by HM Treasury or elsewhere e.g. energy levy etc
+
+> to do
 
 ## Compare levy with costs
 
