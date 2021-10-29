@@ -434,7 +434,9 @@ makeFlexTable(head(t[order(-All_Tco2e_per_dw)]), cap = "Highest all emissions")
 ```
 Are there any strange outliers?
 
-```{r mapIMDallCO2eperdw}
+Figure \@ref(fig:mapIMDallCO2eperdw) maps retrofit costs
+
+```{r mapIMDallCO2eperdw, fig.cap="Total emissios"}
 sf <- merge(boundaries$lsoa_solent_leaflet, t, by = "LSOA11CD")
 
 colCats <- colorNumeric("Reds", t$All_Tco2e_per_dw, n = 9)
@@ -1219,7 +1221,7 @@ ggplot2::ggplot(credsLsoaDT, aes(x = IMD_Decile_label, y = retrofitMeanPerDw)) +
   labs(y = "Mean retrofit cost per dwelling (£)")
 ```
 
-Map retrofit costs
+Figure \@ref(fig:credsLSOAMapRetrofitCost) maps retrofit costs
 
 ```{r credsLSOAMapRetrofitCost, fig.cap = "LSOA retrofit costs (upgrade EPC C to F)"}
 
