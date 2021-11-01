@@ -1264,6 +1264,100 @@ makeFlexTable(head(t[order(-retrofitSum)]), cap = "Highest retofit cost")
 
 #### Scenario 1
 
+Table \@ref(tab:scenario1summaryPanHampshire) shows the overall results for Scenario 1.
+
+```{r scenario1summaryPanHampshire}
+
+# load ONS household projections
+ons_df <- readxl::read_xlsx(path.expand("~/Dropbox/data/UK_ONS/2018basedhhpsprincipalprojection.xlsx"), sheet = "406", skip = 4)
+ons_dt <- data.table::as.data.table(ons_df)
+ons_dt[, LAD11NM := `Area name`]
+ons_dt[, ons_hh_2020 := `2020`]
+setkey(ons_dt, LAD11NM)
+
+summaryS1_T <- credsLsoaDT[, .(Total_Retrofit_Cost_m = sum(retrofitSum)/1000000,
+                               Total_dwellings = sum(nElecMeters), # we assume
+                               Total_dwellings_retrofited = sum(epc_D_imp + epc_E_imp + epc_F_imp + epc_G_imp),
+                        Total_All_emissions_Levy_m = sum(beis_GBPtotal_c)/1000000,
+                        Total_Gas_emissions_Levy_m = sum(beis_GBPtotal_c_gas)/1000000,
+                        Total_Elec_emissions_Levy_m = sum(beis_GBPtotal_c_elec)/1000000,
+                        Total_Metered_Energy_emissions_Levy_m = sum(beis_GBPtotal_c_meteredEnergy)/1000000,
+                        Total_Energy_emissions_Levy_m = sum(beis_GBPtotal_c_energy)/1000000), keyby = .(LAD11NM)]
+
+summaryS1_T[, HouseholdsRetrofitted_pc := 100*(Total_dwellings_retrofited/Total_dwellings)]
+summaryS1_T[, Total_All_emissions_Levy_pc := 100*(Total_All_emissions_Levy_m/Total_Retrofit_Cost_m)]
+summaryS1_T[, Total_Metered_emissions_Levy_pc := 100*(Total_Metered_Energy_emissions_Levy_m/Total_Retrofit_Cost_m)]
+summaryS1_T[, Total_Energy_emissions_Levy_pc := 100*(Total_Energy_emissions_Levy_m/Total_Retrofit_Cost_m)]
+summaryS1_T[, Years_to_pay_all_e := Total_Retrofit_Cost_m/Total_All_emissions_Levy_m]
+              
+setkey(summaryS1_T, LAD11NM)
+dt <- ons_dt[, .(LAD11NM, ons_hh_2020)][summaryS1_T]
+
+makeFlexTable(dt, cap = "Summary of Scenario 1 (totals, £ m GBP)")
+
+summaryS1_pdw <- credsLsoaDT[, .(Retrofit_Cost_pdw = mean(retrofitMeanPerDw),
+                        All_emissions_Levy_pdw = mean(beis_GBPtotal_c_perdw),
+                        Gas_emissions_Levy_pdw = mean(beis_GBPtotal_c_gas_perdw),
+                        Elec_emissions_Levy_pdw = mean(beis_GBPtotal_c_elec_perdw),
+                        meteredEnergy_emissions_Levy_pdw = mean(beis_GBPtotal_c_meteredEnergy_perdw),
+                        Energy_emissions_Levy_pdw = mean(beis_GBPtotal_c_energy_perdw)), keyby = .(LAD11NM)]
+
+summaryS1_pdw[, All_emissions_Levy_pdw_pc := 100*(All_emissions_Levy_pdw/Retrofit_Cost_pdw)]
+summaryS1_pdw[, meteredEnergy_emissions_Levy_pdw_pc := 100*(meteredEnergy_emissions_Levy_pdw/Retrofit_Cost_pdw)]
+summaryS1_pdw[, Energy_emissions_Levy_pdw_pc := 100*(Energy_emissions_Levy_pdw/Retrofit_Cost_pdw)]
+
+makeFlexTable(summaryS1_pdw, cap = "Summary of Scenario 1 (per dwelling, £ m GBP)")
+
+message("# Totals")
+message("Total retrofit cost (£ m):")
+dkUtils::tidyNum(round(sum(summaryS1_T$Total_Retrofit_Cost_m)))
+message("Total dwellings retrofited:")
+dkUtils::tidyNum(round(sum(summaryS1_T$Total_dwellings_retrofited)))
+message("Out of (n elec meters):")
+dkUtils::tidyNum(round(sum(summaryS1_T$Total_dwellings)))
+message("Out of (ONS n hh 2020):")
+dkUtils::tidyNum(round(sum(dt$ons_hh_2020)))
+
+message("Total Year 1 levy (all):")
+dkUtils::tidyNum(round(sum(summaryS1_T$Total_All_emissions_Levy_m)))
+
+message("Total Year 1 levy (gas):")
+dkUtils::tidyNum(round(sum(summaryS1_T$Total_Gas_emissions_Levy_m)))
+
+message("Total Year 1 levy (elec):")
+dkUtils::tidyNum(round(sum(summaryS1_T$Total_Elec_emissions_Levy_m)))
+```
+
+If we exclude Southampton, Portsmouth & IoW the totals are...
+
+```{r scenario1summaryHampshireCounty}
+dt_hcc <- ons_dt[, .(LAD11NM, ons_hh_2020)][summaryS1_T[LAD11NM != "Southampton" & LAD11NM != "Portsmouth" &
+                    LAD11NM != "Isle of Wight"]]
+
+table(dt_hcc$LAD11NM)
+message("# Totals")
+message("Total retrofit cost (£ m):")
+dkUtils::tidyNum(round(sum(dt_hcc$Total_Retrofit_Cost_m)))
+message("Total dwellings retrofited:")
+dkUtils::tidyNum(round(sum(dt_hcc$Total_dwellings_retrofited)))
+
+message("Out of (n elec meters 2018):")
+dkUtils::tidyNum(round(sum(dt_hcc$Total_dwellings)))
+
+message("Out of (ons hh 2020):")
+dkUtils::tidyNum(round(sum(dt_hcc$ons_hh_2020)))
+
+message("Total Year 1 levy (all):")
+dkUtils::tidyNum(round(sum(dt_hcc$Total_All_emissions_Levy_m)))
+
+message("Total Year 1 levy (gas):")
+dkUtils::tidyNum(round(sum(dt_hcc$Total_Gas_emissions_Levy_m)))
+
+message("Total Year 1 levy (elec):")
+dkUtils::tidyNum(round(sum(dt_hcc$Total_Elec_emissions_Levy_m)))
+```
+
+
 ```{r co2eToRettofitTotalScenario1, fig.height=5}
 ggplot2::ggplot(credsLsoaDT, aes(x = beis_GBPtotal_c/1000, y = retrofitSum/1000)) +
   geom_point(aes(size = pc_Heating_Electric, colour = IMD_Decile_label)) +
@@ -1312,7 +1406,43 @@ ggplot2::ggplot(credsLsoaDT, aes(x = (beis_GBPtotal_c_gas_perdw + beis_GBPtotal_
 
 #### Scenario 2
 
+
+Table \@ref(tab:scenario2summaryPanHampshire) shows the overall results for Scenario 1.
+
+```{r scenario2summaryPanHampshire}
+summaryS2_T <- credsLsoaDT[, .(Total_Retrofit_Cost_m = sum(retrofitSum)/1000000,
+                        Total_All_emissions_Levy_m_sc2 = sum(beis_GBPtotal_sc2)/1000000,
+                        Total_Gas_emissions_Levy_m_sc2 = sum(beis_GBPgas_sc2)/1000000,
+                        Total_Elec_emissions_Levy_m_sc2 = sum(beis_GBPelec_sc2)/1000000), keyby = .(LAD11NM)]
+
+summaryS2_T[, Total_All_emissions_Levy_pc := 100*(Total_All_emissions_Levy_m_sc2/Total_Retrofit_Cost_m)]
+
+makeFlexTable(summaryS2_T, cap = "Summary of Scenario 2 (totals, £ m GBP)")
+
+summaryS2_pdw <- credsLsoaDT[, .(Retrofit_Cost_pdw = mean(retrofitMeanPerDw),
+                        All_emissions_Levy_pdw = mean(beis_GBPtotal_sc2_perdw),
+                        Gas_emissions_Levy_pdw = mean(beis_GBPgas_sc2_perdw),
+                        Elec_emissions_Levy_pdw = mean(beis_GBPelec_sc2_perdw)), keyby = .(LAD11NM)]
+
+summaryS2_pdw[, All_emissions_Levy_pdw_pc := 100*(All_emissions_Levy_pdw/Retrofit_Cost_pdw)]
+
+makeFlexTable(summaryS2_pdw, cap = "Summary of Scenario 2 (per dwelling, £ m GBP)")
+
+
+message("# Totals")
+
+message("Total Year 1 levy (all):")
+dkUtils::tidyNum(round(sum(summaryS2_T$Total_All_emissions_Levy_m)))
+
+message("Total Year 1 levy (gas):")
+dkUtils::tidyNum(round(sum(summaryS2_T$Total_Gas_emissions_Levy_m)))
+
+message("Total Year 1 levy (elec):")
+dkUtils::tidyNum(round(sum(summaryS2_T$Total_Elec_emissions_Levy_m)))
+```
+
 ```{r co2eToRettofitTotalScenario2, fig.height=5}
+
 ggplot2::ggplot(credsLsoaDT, aes(x = beis_GBPtotal_sc2/1000, y = retrofitSum/1000)) +
   geom_point(aes(size = pc_Heating_Electric, colour = IMD_Decile_label)) +
   geom_smooth() +
@@ -1363,33 +1493,6 @@ ggplot2::ggplot(credsLsoaDT, aes(x = (beis_GBPtotal_c_gas_perdw + beis_GBPtotal_
 #### Scenario 1
 
 ```{r allLevyPayOffSc1, fig.height=5}
-
-summaryS1_T <- credsLsoaDT[, .(Total_Retrofit_Cost_k = sum(retrofitSum)/1000,
-                        Total_All_emissions_Levy_k = sum(beis_GBPtotal_c)/1000,
-                        Total_Gas_emissions_Levy_k = sum(beis_GBPtotal_c_gas)/1000,
-                        Total_Elec_emissions_Levy_k = sum(beis_GBPtotal_c_elec)/1000,
-                        Total_Metered_Energy_emissions_Levy_k = sum(beis_GBPtotal_c_meteredEnergy)/1000,
-                        Total_Energy_emissions_Levy_k = sum(beis_GBPtotal_c_energy)/1000), keyby = .(LAD11NM)]
-
-summaryS1_T[, Total_All_emissions_Levy_pc := 100*(Total_All_emissions_Levy_k/Total_Retrofit_Cost_k)]
-summaryS1_T[, Total_Metered_emissions_Levy_pc := 100*(Total_Metered_Energy_emissions_Levy_k/Total_Retrofit_Cost_k)]
-summaryS1_T[, Total_Energy_emissions_Levy_pc := 100*(Total_Energy_emissions_Levy_k/Total_Retrofit_Cost_k)]
-
-makeFlexTable(summaryS1_T, cap = "Summary of Scenario 1 (totals, £ m GBP)")
-
-summaryS1_pdw <- credsLsoaDT[, .(Retrofit_Cost_pdw = mean(retrofitMeanPerDw),
-                        All_emissions_Levy_pdw = mean(beis_GBPtotal_c_perdw),
-                        Gas_emissions_Levy_pdw = mean(beis_GBPtotal_c_gas_perdw),
-                        Elec_emissions_Levy_pdw = mean(beis_GBPtotal_c_elec_perdw),
-                        meteredEnergy_emissions_Levy_pdw = mean(beis_GBPtotal_c_meteredEnergy_perdw),
-                        Energy_emissions_Levy_pdw = mean(beis_GBPtotal_c_energy_perdw)), keyby = .(LAD11NM)]
-
-summaryS1_pdw[, All_emissions_Levy_pdw_pc := 100*(All_emissions_Levy_pdw/Retrofit_Cost_pdw)]
-summaryS1_pdw[, meteredEnergy_emissions_Levy_pdw_pc := 100*(meteredEnergy_emissions_Levy_pdw/Retrofit_Cost_pdw)]
-summaryS1_pdw[, Energy_emissions_Levy_pdw_pc := 100*(Energy_emissions_Levy_pdw/Retrofit_Cost_pdw)]
-
-makeFlexTable(summaryS1_pdw, cap = "Summary of Scenario 1 (per dwelling, £ m GBP)")
-
 credsLsoaDT[, yearsRequiredToPayRetrofit_beis_GBPtotal_c_perdw := retrofitMeanPerDw/beis_GBPtotal_c_perdw]
 summary(credsLsoaDT$yearsRequiredToPayRetrofit_beis_GBPtotal_c_perdw)
 
@@ -1500,24 +1603,6 @@ What happens in Year 2 totally depends on the rate of upgrades...
 #### Scenario 2
 
 ```{r allLevyPayOffSc2, fig.height=5}
-
-summaryS2_T <- credsLsoaDT[, .(Total_Retrofit_Cost_k = sum(retrofitSum)/1000,
-                        Total_All_emissions_Levy_k_sc2 = sum(beis_GBPtotal_sc2)/1000,
-                        Total_Gas_emissions_Levy_k_sc2 = sum(beis_GBPgas_sc2)/1000,
-                        Total_Elec_emissions_Levy_k_sc2 = sum(beis_GBPelec_sc2)/1000), keyby = .(LAD11NM)]
-
-summaryS2_T[, Total_All_emissions_Levy_pc := 100*(Total_All_emissions_Levy_k_sc2/Total_Retrofit_Cost_k)]
-
-makeFlexTable(summaryS2_T, cap = "Summary of Scenario 2 (totals, £ m GBP)")
-
-summaryS2_pdw <- credsLsoaDT[, .(Retrofit_Cost_pdw = mean(retrofitMeanPerDw),
-                        All_emissions_Levy_pdw = mean(beis_GBPtotal_sc2_perdw),
-                        Gas_emissions_Levy_pdw = mean(beis_GBPgas_sc2_perdw),
-                        Elec_emissions_Levy_pdw = mean(beis_GBPelec_sc2_perdw)), keyby = .(LAD11NM)]
-
-summaryS2_pdw[, All_emissions_Levy_pdw_pc := 100*(All_emissions_Levy_pdw/Retrofit_Cost_pdw)]
-
-makeFlexTable(summaryS2_pdw, cap = "Summary of Scenario 2 (per dwelling, £ m GBP)")
 
 credsLsoaDT[, yearsRequiredToPayRetrofit_beis_GBPtotal_sc2_perdw := retrofitMeanPerDw/beis_GBPtotal_sc2_perdw]
 summary(credsLsoaDT$yearsRequiredToPayRetrofit_beis_GBPtotal_sc2_perdw)
@@ -1649,9 +1734,9 @@ Figure \@ref(fig:compareScenariosRetrofitCosts)
 
 dt <- cbind(summaryS1_T, summaryS2_T)
 mdt <- melt(dt[, .(LAD11NM,  
-                   "Retrofit cost" = Total_Retrofit_Cost_k, 
-                   "Year 1 levy (scenario 1)" = Total_All_emissions_Levy_k, 
-                   "Year 1 levy (scenario 2)" =Total_All_emissions_Levy_k_sc2)])
+                   "Retrofit cost" = Total_Retrofit_Cost_m, 
+                   "Year 1 levy (scenario 1)" = Total_All_emissions_Levy_m, 
+                   "Year 1 levy (scenario 2)" = Total_All_emissions_Levy_m_sc2)])
 
 ggplot2::ggplot(mdt, aes(x = reorder(LAD11NM, -value), 
                          y = value/1000, fill = variable)) + 
