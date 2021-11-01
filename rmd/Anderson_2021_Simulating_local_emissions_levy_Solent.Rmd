@@ -104,8 +104,9 @@ Key results:
  * Table \@ref(tab:scenario1summaryPanHampshire) compares the total retrofit costs with the year 1 levy under Scenario 1 while Table \@ref(tab:scenario2summaryPanHampshire) does the same under Scenario 2.
  * Figure \@ref(fig:allLevyPayOffSc1) shows the years to pay back under Scenario 1 for an all emissions levy while  Figure \@ref(fig:allLevyPayOffSc2) does the same for Scenario 2
  * Figure \@ref(fig:transferVisAllSc1Col) shows what would happen after year 1 if the levy were shared equally across LSOAs (all emissions, Scenario 1) and Figure \@ref(fig:transferVisAllSc2Col) shows the same for Scenario 2.
-  * Figure \@ref(fig:compareScenariosRetrofitCosts) compares the levy scenarios at local authority level
-  * Figure \@ref(fig:comparePayBackScatter) shows payback years under each Scenario assuming a constant all emissions levy
+ * Table \@ref(tab:finalTableSc1) shows the final results for Scenario 1
+ * Figure \@ref(fig:compareScenariosRetrofitCosts) compares the levy scenarios at local authority level
+ * Figure \@ref(fig:comparePayBackScatter) shows payback years under each Scenario assuming a constant all emissions levy
 
 
 # Introduction
@@ -1742,7 +1743,31 @@ ggplot2::ggplot(plotDT, aes(x = reorder(LSOA11CD, -retrofitSum), colour = LAD11N
 
 What happens in Year 2 totally depends on the rate of upgrades...
 
-#### Compare scenarios
+### Summary of results
+
+```{r finalTableSc1LAs}
+
+dt <- summaryS1_T[, .(LAD11NM, 
+                      Total_dwellings,
+                      Total_dwellings_retrofited,
+                      Total_Retrofit_Cost_m,
+                      Total_All_emissions_Levy_m,
+                      Total_Metered_Energy_emissions_Levy_m)]
+dt[, YearsToPayViaMeteredEnergyEmissions := Total_Retrofit_Cost_m/Total_Metered_Energy_emissions_Levy_m]
+makeFlexTable(dt, cap = "Summary of Scenario 1 (totals, £ m GBP)")
+
+```
+
+```{r finalTableSc1}
+
+dt <- summaryS1_T[, .(Total_dwellings = sum(Total_dwellings),
+                      Total_dwellings_retrofited = sum(Total_dwellings_retrofited),
+                      Total_Retrofit_Cost_m = sum(Total_Retrofit_Cost_m),
+                      Total_All_emissions_Levy_m = sum(Total_All_emissions_Levy_m),
+                      Total_Metered_Energy_emissions_Levy_m = sum(Total_Metered_Energy_emissions_Levy_m))]
+
+makeFlexTable(dt, cap = "Summary of Scenario 1 (totals, £ m GBP)")
+```
 
 Figure \@ref(fig:compareScenariosRetrofitCosts) shows the year 1 levy under each scenario against total estimated retrofit costs.
 
