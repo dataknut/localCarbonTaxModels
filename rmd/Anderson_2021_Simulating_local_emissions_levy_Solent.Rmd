@@ -1,6 +1,6 @@
 ---
 title: "Simulating a local emissions levy to fund local energy effiency retrofit"
-subtitle: "'Wider Solent' as a case study"
+subtitle: "'Wider Solent' / 'Pan-Hampshire' as a case study"
 author: 'Ben Anderson (b.anderson@soton.ac.uk)'
 date: 'Last run at: `r Sys.time()`'
 output:
@@ -72,20 +72,47 @@ boundaries <- list() # for holding boundaries
 ```
 
 \newpage
-
 # About
 
-Paper prepared for the 2021 [International Conference on Evolving Cities](https://evolvingcities.org/), University of Southampton, 22 – 24 September 2021.
+This data notebook is based on a model presented at the 2021 [International Conference on Evolving Cities](https://evolvingcities.org/), University of Southampton, 22 – 24 September 2021.
 
-# Citation
+If you want to cite the method/model please use:
 
-Anderson, B. (2021). [Simulating the consequences of an emissions levy at the city and neighbourhood scale](https://eprints.soton.ac.uk/451507/). Paper presented at International Conference on Evolving Cities, Southampton, United Kingdom
+Anderson, B. (2021). [Simulating the consequences of an emissions levy at the city and neighbourhood scale](https://eprints.soton.ac.uk/451507/). *Paper presented at the International Conference on Evolving Cities, MAST Mayflower Studios, Southampton, United Kingdom. 22 - 24 Sep 2021*.
+
+If you are interested in how the model works start from  https://dataknut.github.io/localCarbonTaxModels/
+
+# Citing this data notebook
+
+If you wish to re-use material from this data notebook please cite it as:
+
+Anderson, B. (2021). [Simulating the consequences of an emissions levy at the city and neighbourhood scale: Wider Solent/'Pan-Hampshire' as a case study](https://dataknut.github.io/localCarbonTaxModels/Anderson_2021_Simulating_local_emissions_levy_Solent.html), University of Southampton, United Kingdom
+
+License: [CC-BY](https://creativecommons.org/licenses/by/4.0/)
+
+Share, adapt, give attribution.
+
+# Highlights
+This data notebook estimates the value of an emissions levy using LSOA level data on emissions derived from the CREDS place-based emissions calculator. These emissions are `all consumption`, `gas` and `electricity`. It does this under two scenarios - a simple carbon value multiplier and a rising block tariff. 
+
+It then compares these with estimates of the cost of retrofitting EPC band dwellings D-E and F-G in each LSOA and for the whole area under study.
+
+Key results:
+
+ * Figure \@ref(fig:visIMDallCO2eperdw) shows the LSOA level per dwelling 'all emissions' in Tonnes CO2e - which areas emit the most?
+ * Figure \@ref(fig:credsLSOAMapRetrofitCost) maps the total retrofit costs
+ * Table \@ref(tab:scenario1summaryPanHampshire) compares the total retrofit costs with the year 1 levy under Scenario 1 while Table \@ref(tab:scenario2summaryPanHampshire) does the same under Scenario 2.
+ * Figure \@ref(fig:allLevyPayOffSc1) shows the years to pay back under Scenario 1 for an all emissions levy while  Figure \@ref(fig:allLevyPayOffSc2) does the same for Scenario 2
+ * Figure \@ref(fig:transferVisAllSc1Col) shows what would happen after year 1 if the levy were shared equally across LSOAs (all emissions, Scenario 1) and Figure \@ref(fig:transferVisAllSc2Col) shows the same for Scenario 2.
+  * Figure \@ref(fig:compareScenariosRetrofitCosts) compares the levy scenarios at local authority level
+  * Figure \@ref(fig:comparePayBackScatter) shows payback years under each Scenario assuming a constant all emissions levy
+
 
 # Introduction
 
 Background blurb about emissions, retofit, carbon tax/levy etc
 
-# Emissions Levy Case Study - Wider Solent
+# Emissions Levy Case Study - Wider Solent/'Pan-Hampshire'
 
 In the reminder of this paper we develop a model of an emissions levy using LSOA level data on emissions derived from the CREDS place-based emissions calculator. We apply carbon 'values' to a number of emissions categories to estimate the levy revenue that would be generated for each LSOA in year 1 of such a levy. We then sum these values to given an overall levy revenue estimate for the area in the case study.
 
@@ -101,7 +128,7 @@ This analysis is at LSOA level.
 
 ### Useful LSOA labels and codes
 
-Load LSOA look-up table and list the local authroities we are covering.
+Load LSOA look-up table and list the local authoroties we are covering.
 
 ```{r loadLSOAlookup}
 labsToLoad <- c("LSOA11CD", "LSOA11NM", "MSOA11NM","LA11NM", "WD20CD",
@@ -1188,8 +1215,10 @@ sum(credsLsoaDT$retrofitSum)/1000000
 message("To retrofit D-G (mean per dwelling £k)")
 mean(credsLsoaDT$retrofitMeanPerDw)/1000
 
-credsLsoaDT[, .(meanRetrofitPerLSOA = mean(retrofitSum)/1000,
-                totalRetrofit = sum(retrofitSum))]
+t <- credsLsoaDT[, .(meanRetrofitPerLSOA_m = mean(retrofitSum)/1000000,
+                totalRetrofit_m = sum(retrofitSum)/1000000)]
+
+makeFlexTable(t, cap = "Summary of retrofit costs (£m)")
 ```
 
 Plot retrofit costs
@@ -1223,7 +1252,7 @@ ggplot2::ggplot(credsLsoaDT, aes(x = IMD_Decile_label, y = retrofitMeanPerDw)) +
 
 Figure \@ref(fig:credsLSOAMapRetrofitCost) maps retrofit costs
 
-```{r credsLSOAMapRetrofitCost, fig.cap = "LSOA retrofit costs (upgrade EPC C to F)"}
+```{r credsLSOAMapRetrofitCost, fig.cap = "LSOA retrofit costs (upgrade EPC D to G)"}
 
 credsLsoaDT_sf <- merge(boundaries$lsoa_solent_leaflet, credsLsoaDT, by = "LSOA11CD")
 
@@ -1492,7 +1521,7 @@ ggplot2::ggplot(credsLsoaDT, aes(x = (beis_GBPtotal_c_gas_perdw + beis_GBPtotal_
 
 #### Scenario 1
 
-```{r allLevyPayOffSc1, fig.height=5}
+```{r allLevyPayOffSc1, fig.height=5, fig.cap="All levy payback years (Scenario 1)"}
 credsLsoaDT[, yearsRequiredToPayRetrofit_beis_GBPtotal_c_perdw := retrofitMeanPerDw/beis_GBPtotal_c_perdw]
 summary(credsLsoaDT$yearsRequiredToPayRetrofit_beis_GBPtotal_c_perdw)
 
@@ -1529,7 +1558,7 @@ ggplot2::ggplot(credsLsoaDT, aes(x = IMDScore,
 
 ```
 
-```{r transferVisAllSc1}
+```{r transferVisAllSc1Col, fig.cap = "Payback if equal share (Scenario 1)"}
 plotDT <- credsLsoaDT[, .(LSOA11CD, beis_GBPtotal_c, beis_GBPtotal_c_elec, beis_GBPtotal_c_gas, retrofitSum, LAD11NM, IMDScore)]
 share_Y1_total_c <- sum(plotDT$beis_GBPtotal_c)/uniqueN(plotDT$LSOA11CD) # divide the year 1 levy equally
 share_Y1_measuredEnergy_c <- (sum(plotDT$beis_GBPtotal_c_elec) + sum(plotDT$beis_GBPtotal_c_gas))/uniqueN(plotDT$LSOA11CD) # divide the year 1 levy equally
@@ -1552,7 +1581,9 @@ ggplot2::ggplot(plotDT, aes(x = reorder(LSOA11CD, -retrofitSum), fill = retrofit
        caption = "BEIS central carbon cost, all emissions levy")
 
 #ggplot2::ggsave(filename = here::here("plots/sotonLSOAs_transferVis_allEmissions_sc1.png"))
+```
 
+```{r transferVisAllSc1Point, fig.cap = "Payback if equal share (Scenario 1)"}
 ggplot2::ggplot(plotDT, aes(x = reorder(LSOA11CD, -retrofitSum), colour = LAD11NM,
                             y = surplusY1_total_c/1000000)) +
                   geom_point() +
@@ -1602,7 +1633,7 @@ What happens in Year 2 totally depends on the rate of upgrades...
 
 #### Scenario 2
 
-```{r allLevyPayOffSc2, fig.height=5}
+```{r allLevyPayOffSc2, fig.height=5, fig.cap="All levy payback years (Scenario 2)"}
 
 credsLsoaDT[, yearsRequiredToPayRetrofit_beis_GBPtotal_sc2_perdw := retrofitMeanPerDw/beis_GBPtotal_sc2_perdw]
 summary(credsLsoaDT$yearsRequiredToPayRetrofit_beis_GBPtotal_sc2_perdw)
@@ -1639,7 +1670,7 @@ ggplot2::ggplot(credsLsoaDT, aes(x = IMDScore,
 
 ```
 
-```{r transferVisAllSc2}
+```{r transferVisAllSc2Col, fig.cap = "Payback if equal share (Scenario 2)"}
 plotDT <- credsLsoaDT[, .(LSOA11CD, beis_GBPtotal_sc2, beis_GBPelec_sc2, beis_GBPgas_sc2, retrofitSum, LAD11NM, IMDScore)]
 share_Y1_total_sc2 <- sum(plotDT$beis_GBPtotal_sc2)/uniqueN(plotDT$LSOA11CD) # divide the year 1 levy equally
 share_Y1_energy_sc2 <- (sum(plotDT$beis_GBPelec_sc2) + sum(plotDT$beis_GBPgas_sc2))/uniqueN(plotDT$LSOA11CD) # divide the year 1 levy equally
@@ -1662,7 +1693,9 @@ ggplot2::ggplot(plotDT, aes(x = reorder(LSOA11CD, -retrofitSum), fill = retrofit
        caption = "BEIS central carbon cost, all emissions levy")
 
 #ggplot2::ggsave(filename = here::here("plots/sotonLSOAs_transferVis_allEmissions_sc2.png"))
+```
 
+```{r transferVisAllSc2Point, fig.cap = "Payback if equal share (Scenario 2)"}
 ggplot2::ggplot(plotDT, aes(x = reorder(LSOA11CD, -retrofitSum), colour = LAD11NM,
                             y = surplusY1_total_sc2/1000000)) +
                   geom_point() +
@@ -1711,24 +1744,7 @@ What happens in Year 2 totally depends on the rate of upgrades...
 
 #### Compare scenarios
 
-Figure \@ref(fig:compareScenariosLevy) compares the total levy generated by district.
-
-```{r compareScenariosLevy, fig.cap="Compare levy at district level"}
-s1Totals_l <- melt(summaryS1_T)
-s1Totals_l[, scenario := "Scenario 1"]
-s2Totals_l <- melt(summaryS2_T)
-s2Totals_l[, scenario := "Scenario 2 (rising block)"]
-plotDT <- rbind(s1Totals_l, s2Totals_l)
-
-ggplot2::ggplot(plotDT[variable %like% "Total_All_emissions_Levy_k"], aes(x = reorder(LAD11NM, -value), y = value/1000, fill = scenario)) + 
-  geom_col(position = "dodge") +
-  scale_fill_discrete(name = "Scenario") +
-  labs(y = "Emissions levy £ m (Year 1)",
-       x = "District",
-       caption = "All emissions") +
-  coord_flip()
-```
-Figure \@ref(fig:compareScenariosRetrofitCosts)
+Figure \@ref(fig:compareScenariosRetrofitCosts) shows the year 1 levy under each scenario against total estimated retrofit costs.
 
 ```{r compareScenariosRetrofitCosts, fig.cap="Compare districts"}
 
@@ -1739,13 +1755,14 @@ mdt <- melt(dt[, .(LAD11NM,
                    "Year 1 levy (scenario 2)" = Total_All_emissions_Levy_m_sc2)])
 
 ggplot2::ggplot(mdt, aes(x = reorder(LAD11NM, -value), 
-                         y = value/1000, fill = variable)) + 
+                         y = value, fill = variable)) + 
   geom_col(position = "dodge") +
   scale_fill_discrete(name = "Legend") +
   labs(y = "£ m",
        x = "District") +
   coord_flip()
 ```
+
 Figure \@ref(fig:comparePayBackScatter)
 
 ```{r comparePayBackScatter, fig.height=5, fig.cap="Pay back scatter for all LSOAs"}
