@@ -1753,6 +1753,7 @@ dt <- summaryS1_T[, .(LAD11NM,
                       Total_Retrofit_Cost_m,
                       Total_All_emissions_Levy_m,
                       Total_Metered_Energy_emissions_Levy_m)]
+dt[, YearsToPayViaAllEmissions := Total_Retrofit_Cost_m/Total_All_emissions_Levy_m]
 dt[, YearsToPayViaMeteredEnergyEmissions := Total_Retrofit_Cost_m/Total_Metered_Energy_emissions_Levy_m]
 makeFlexTable(dt, cap = "Summary of Scenario 1 (totals, £ m GBP)")
 
