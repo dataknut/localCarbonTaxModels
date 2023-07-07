@@ -55,8 +55,8 @@ dkUtils::loadLibraries(myLibs)
 rmdParams <- list()
 
 if(params$title == ""){
-  # in notebook mode
-  source(here::here("makefile_emissionsLevyLSOA.R")) # run R script to create data
+  message("In notebook mode")
+  message("Make sure you run the data creation parts of makefile_emissionsLevyLSOA.R first")
   rmdParams$filter <- "Southampton"
   capFilter <- paste0("LSOAs: City of Southampton") # for plots
   reportLink <- paste0("https://dataknut.github.io/localCarbonTaxModels/simulating_local_emissions_levy_template_Southampton.html")
@@ -68,7 +68,11 @@ if(params$title == ""){
                        params$rmdFile, "_", rmdParams$filter,".html")
 }
 
-
+rmdParams$plotPath <- here::here("docs", "plots", rmdParams$filter, "/")
+if(!dir.exists(rmdParams$plotPath)){
+  dir.create(rmdParams$plotPath)
+}
+                                 
 # Functions ----
 
 ```
@@ -586,6 +590,7 @@ ggplot2::ggplot(selectedLsoasDT, aes(x = IMDScore,
   labs(y = "BEIS central 'carbon cost' £ per dwelling",
        caption = paste0(emissionsCap, "\n", capFilter))
 #ggplot2::ggsave(filename = here::here("plots/allLSOAs_whoWins_beis_GBPtotal_c_perdw.png"))
+ggplot2::ggsave(paste0(rmdParams$plotPath, "BC_r1_Figure_6.jpg"))
 
 summary(selectedLsoasDT$beis_GBPtotal_c_perdw)
 
@@ -703,6 +708,7 @@ ggplot2::ggplot(selectedLsoasDT, aes(x = IMDScore,
   labs(y = "BEIS central 'carbon cost' £ per dwelling",
        caption = paste0(emissionsCap, "\n", capFilter))
 #ggplot2::ggsave(filename = here::here("plots/allLSOAs_whoWinsBEIS_c_energy_perdw.png"))
+ggplot2::ggsave(paste0(rmdParams$plotPath, "BC_r1_Figure_7.jpg"))
 
 summary(selectedLsoasDT$beis_GBPtotal_c_energy_perdw)
 ```
@@ -917,6 +923,9 @@ ggplot2::ggplot(m_plotDT, aes(x = IMD_Decile_label, y = value/1000000, colour = 
   labs(x = "IMD decile",
        y = "Levy (£ m)",
        caption = capFilter)
+
+ggplot2::ggsave(paste0(rmdParams$plotPath, "BC_r1_Figure_10.jpg"))
+
 ```
 
 Figure \@ref(fig:compareScenariosPlotAll) compares the £ levy under each scenario for all consumption.
@@ -1278,6 +1287,8 @@ ggplot2::ggplot(plotDT[!is.na(IMD_Decile_label)], aes(x =  IMD_Decile_label, y =
   labs(y = "£ retrofit cost (£m)",
        x = "IMD decile")
 
+ggplot2::ggsave(paste0(rmdParams$plotPath, "BC_r1_Figure_5.jpg"))
+
 ```
 
 ### Estimate costs - sheep dip D to G but upgrades in 20% poorest areas funded by HM Gov (somehow)
@@ -1417,6 +1428,8 @@ ggplot2::ggplot(selectedLsoasDT, aes(x = IMDScore,
   labs(y = "Years to pay off",
        caption = paste0("BEIS central carbon cost, all emissions levy", "\n", capFilter))
 #ggplot2::ggsave(filename = here::here("plots/allLSOAs_whoWins_yearsRequiredToPayRetrofit_beis_GBPtotal_sc1_perdw.png"))
+ggplot2::ggsave(paste0(rmdParams$plotPath, "BC_r1_Figure_8.jpg"))
+
 m <- median(selectedLsoasDT$yearsRequiredToPayRetrofit_beis_GBPtotal_c_perdw)
 message("Median years: ", round(m,2))
 ```
@@ -1454,19 +1467,21 @@ plotDT[, surplusY1_total_c := share_Y1_total_c - retrofitSum] # equal share
 
 plotDT[, surplusY1_energy_c := share_Y1_energy_c - retrofitSum]
 
-# Facet by ward is illogical here - we're using all LSOAs
-# ggplot2::ggplot(plotDT, aes(x = reorder(LSOA11CD, -retrofitSum), fill = retrofitSum/1000000)) +
-#   geom_col(aes(y = retrofitSum/1000000)) +
-#   geom_point(aes(y = share_Y1_total_c/1000000, colour = "Levy Year 1")) +
-#   theme(axis.text.x=element_blank(),
-#         axis.ticks.x=element_blank()) +
-#   scale_fill_continuous(name = "Retrofit cost (£M)") +
-#   scale_color_discrete(name = "Levy Year 1 (£M)") +
-#   facet_wrap(. ~ WD18NM, scales="free_x") +
-#   labs(x = "LSOAs (ordered by retrofit cost)",
-#        y = "£M",
-#        caption = "BEIS central carbon cost, all emissions levy")
+# Breaks if doing all England!!
+ggplot2::ggplot(plotDT, aes(x = reorder(LSOA11CD, -retrofitSum), fill = retrofitSum/1000000)) +
+  geom_col(aes(y = retrofitSum/1000000)) +
+  geom_point(aes(y = share_Y1_total_c/1000000, colour = "Levy Year 1")) +
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()) +
+  scale_fill_continuous(name = "Retrofit cost (£M)") +
+  scale_color_discrete(name = "Levy Year 1 (£M)") +
+  facet_wrap(. ~ WD18NM, scales="free_x") +
+  labs(x = "LSOAs (ordered by retrofit cost)",
+       y = "£M",
+       caption = "BEIS central carbon cost, all emissions levy")
 # 
+ggplot2::ggsave(paste0(rmdParams$plotPath, "BC_r1_Figure_9.jpg"))
+
 # #ggplot2::ggsave(filename = here::here("plots/allLSOAs_transferVis_allEmissions_sc1.png"))
 
 ggplot2::ggplot(plotDT, aes(x = reorder(LSOA11CD, -retrofitSum), colour = IMD_Decile_label,
@@ -1479,6 +1494,7 @@ ggplot2::ggplot(plotDT, aes(x = reorder(LSOA11CD, -retrofitSum), colour = IMD_De
   labs(x = "LSOAs (ordered by retrofit cost)",
        y = "Year 1 surplus (£M)",
        caption = paste0("BEIS central carbon cost, all emissions levy", "\n", capFilter))
+
 #ggplot2::ggsave(filename = here::here("plots/allLSOAs_surplusVis_allEmissions_sc1.png"))
 
 t <- head(selectedLsoasDT[, .(LSOA11CD,LSOA11NM, WD18NM, retrofitSum,yearsToPay = yearsRequiredToPayRetrofit_beis_GBPtotal_c_energy_perdw, epc_D_pc, epc_E_pc, epc_F_pc, epc_G_pc)][order(-retrofitSum)],10)
@@ -1621,6 +1637,9 @@ ggplot2::ggplot(selectedLsoasDT, aes(x = yearsRequiredToPayRetrofit_beis_GBPtota
                         "\n", capFilter, ", x = y line plotted for clarity"))
 #ggplot2::ggsave(filename = here::here("plots/allLSOAs_compare_whoWins_yearsRequiredToPayRetrofit_beis_GBPtotal_perdw.png"))
 
+ggplot2::ggsave(paste0(rmdParams$plotPath, "BC_r1_Figure_11.jpg"))
+
+
 ```
 
 # Area level study context
@@ -1656,6 +1675,9 @@ ggplot2::ggplot(plotDT, aes(x =  IMD_Decile_label, y = value, fill = variable ))
   scale_fill_viridis_d(name = "EPC Band", direction = -1) +
   labs(y = "Number of dwellings",
        x = "IMD decile")
+
+ggplot2::ggsave(paste0(rmdParams$plotPath, "BC_r1_Figure_2.jpg"))
+
 ```
 
 Imputed EPCs - this corrects for numbers but not the bias in the EPC sample
@@ -1678,6 +1700,7 @@ ggplot2::ggplot(plotDT, aes(x =  IMD_Decile_label, y = value, fill = variable ))
   scale_fill_viridis_d(name = "EPC Band", direction = -1) +
   labs(y = "Number of dwellings",
        x = "IMD decile")
+
 ```
 
 ```{r caseStudyContext_income}
@@ -1707,6 +1730,8 @@ ggplot2::ggplot(plotDT[!is.na(mean_MSOA_totInc_decile)], aes(x =  mean_MSOA_totI
   scale_fill_viridis_d(name = "EPC Band", direction = -1) +
   labs(y = "Number of dwellings",
        x = "Income decile")
+
+
 ```
 
 ```{r caseStudyContext_renters}
@@ -1733,6 +1758,9 @@ ggplot2::ggplot(plotDT[!is.na(c2011_pc_social_rent_decile)], aes(x =  c2011_pc_s
   labs(y = "Number of dwellings",
        x = "% social rent decile")
 
+ggplot2::ggsave(paste0(rmdParams$plotPath, "BC_r1_Figure_3.jpg"))
+
+
 mergedLSOA_Data_Eng[, c2011_pc_private_rent_decile := cut(c2011_pc_private_rent, 
                                                    breaks = quantile(c2011_pc_private_rent, probs = 0:10/10),
                                                    labels = 1:10, right = FALSE)]
@@ -1754,6 +1782,9 @@ ggplot2::ggplot(plotDT[!is.na(c2011_pc_private_rent_decile)], aes(x =  c2011_pc_
   scale_fill_viridis_d(name = "EPC Band", direction = -1) +
   labs(y = "Number of dwellings",
        x = "% private rent decile")
+
+ggplot2::ggsave(paste0(rmdParams$plotPath, "BC_r1_Figure_4.jpg"))
+
 ```
 
 
