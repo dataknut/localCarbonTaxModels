@@ -731,7 +731,7 @@ cut_total_pdw <- quantile(selectedLsoasDT$CREDS_total_kgco2e_pdw, probs = seq(0,
 cut_c <- cut_total_pdw[[2]]
 cut_h <- cut_total_pdw[[3]]
 message("Cuts for total per dw")
-cut_total_pdw
+cut_total_pdw/1000
 
 ggplot2::ggplot(selectedLsoasDT, aes(x = CREDS_total_kgco2e_pdw)) +
   geom_histogram() +
@@ -769,13 +769,15 @@ selectedLsoasDT[, beis_GBPtotal_sc2 := beis_GBPtotal_sc2_perdw * nElecMeters]
 # totals
 skimr::skim(selectedLsoasDT[, .(CREDS_total_kgco2e_pdw/1000, beis_GBPtotal_sc2_perdw, beis_GBPtotal_sc2)])
 ```
+Gas cuts:
 
 ```{r estimateAnnualLevyScenario2gas}
 # gas ----
 cut_gas_pdw <- quantile(selectedLsoasDT$CREDS_gas_kgco2e2018_pdw, probs = seq(0,1,0.25))
 cut_c <- cut_gas_pdw[[2]]
 cut_h <- cut_gas_pdw[[3]]
-
+message("Cuts for gas per dw")
+cut_gas_pdw/1000
 selectedLsoasDT$beis_GBPgas_sc2_l_perdw <- NULL
 selectedLsoasDT$beis_GBPgas_sc2_c_perdw <- NULL
 selectedLsoasDT$beis_GBPgas_sc2_h_perdw <- NULL
@@ -815,6 +817,9 @@ sum(selectedLsoasDT$beis_GBPgas_sc2)/1000000
 cut_elec_pdw <- quantile(selectedLsoasDT$CREDS_elec_kgco2e2018_pdw, probs = seq(0,1,0.1))
 cut_c <- cut_elec_pdw[[2]]
 cut_h <- cut_elec_pdw[[3]]
+message("Cuts for elec per dw")
+cut_elec_pdw/1000
+
 # low
 selectedLsoasDT[, beis_GBPelec_sc2_l_perdw := ifelse(CREDS_elec_kgco2e2018_pdw <= cut_c,
                                         CREDS_elec_kgco2e2018_pdw/1000 * beis_l,

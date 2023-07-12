@@ -264,6 +264,7 @@ head(mergedLSOA_Data_Eng[, .(type_house_detached, type_house_semi, type_house_mi
 # makeReport(filter = "All English LSOAs")
 
 makeReport(filter = "Southampton")
+makeReport(filter = "Winchester")
 # makeReport(filter = "All English LSOAs")
 
 
