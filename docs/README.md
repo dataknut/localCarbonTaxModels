@@ -6,7 +6,10 @@ The model runs at the Census [Lower Layer Super Output Area](https://www.ons.gov
 
 Example:
 
- * [Southampton](simulating_local_emissions_levy_template_Southampton.html) City Council (as presented at [ICEC 2021](https://eprints.soton.ac.uk/451507/))
+ * [Southampton](Anderson_2021_Simulating_local_emissions_levy_ICEC2021.html) City (as presented at [ICEC 2021](https://eprints.soton.ac.uk/451507/))
+ * [Southampton](simulating_local_emissions_levy_template_Southampton.html) City (Updated for [Buildings & Cities](https://doi.org/10.5334/bc.279) submission)
+ * [Winchester](simulating_local_emissions_levy_template_Winchester.html)
+ * [Islington](simulating_local_emissions_levy_template_Islington.html)
 
 Code:
 
