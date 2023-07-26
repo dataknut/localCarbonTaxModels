@@ -83,17 +83,21 @@ if(!dir.exists(rmdParams$plotPath)){
 
 This data notebook is based on a model presented at the 2021 [International Conference on Evolving Cities](https://evolvingcities.org/), University of Southampton, 22 – 24 September 2021.
 
-If you want to cite the method/model please use:
-
-Anderson, B. (2021). [Simulating the consequences of an emissions levy at the city and neighbourhood scale](https://eprints.soton.ac.uk/451507/). *Paper presented at the International Conference on Evolving Cities, MAST Mayflower Studios, Southampton, United Kingdom. 22 - 24 Sep 2021*.
-
 If you are interested in how the model works start from  https://dataknut.github.io/localCarbonTaxModels/
+
+The model is similar on some ways to Evans et al (2023) *Getting to net zero: Islington’s social housing stock* (https://journal-buildingscities.org/articles/10.5334/bc.349) which estimated an overall cost of upgrading Islington's social housing stock of 4500 buildings containing some 33,300 dwellings. Estimated cost: £1,600m
+
+# Published versions
+
+A paper based on this model as applied to the City of Southampton has been published in Buildings & Cities:
+
+ * Anderson, B. (2023). A residential emissions-based carbon levy: city and neighbourhood consequences. Buildings and Cities, 4(1), pp. 1–20. DOI: https://doi.org/10.5334/bc.279
 
 # Citing this data notebook
 
 If you wish to re-use material from this data notebook please cite it as:
 
-`r params$authors` (`r lubridate::year(today())`) [`r params$title`: `r rParams$filter`](`r reportLink`).  University of Southampton, United Kingdom
+`r params$authors` (`r lubridate::year(today())`) [`r params$title`: `r rmdParams$filter` as a case study](`r reportLink`).  University of Southampton, United Kingdom
 
 License: [CC-BY](https://creativecommons.org/licenses/by/4.0/)
 
@@ -1683,6 +1687,7 @@ ggplot2::ggplot(plotDT, aes(x =  IMD_Decile_label, y = value, fill = variable ))
 
 ggplot2::ggsave(paste0(rmdParams$plotPath, "BC_r1_Figure_2.jpg"))
 
+message("Number of EPC coded dwellings in case study area, (", rmdParams$filter, ") = ", sum(plotDT[case_study == 1]$value))
 ```
 
 Imputed EPCs - this corrects for numbers but not the bias in the EPC sample
@@ -1705,6 +1710,8 @@ ggplot2::ggplot(plotDT, aes(x =  IMD_Decile_label, y = value, fill = variable ))
   scale_fill_viridis_d(name = "EPC Band", direction = -1) +
   labs(y = "Number of dwellings",
        x = "IMD decile")
+
+message("Number of imputed EPC coded dwellings in case study area, (", rmdParams$filter, ") = ", round(sum(plotDT[case_study == 1]$value)))
 
 ```
 
