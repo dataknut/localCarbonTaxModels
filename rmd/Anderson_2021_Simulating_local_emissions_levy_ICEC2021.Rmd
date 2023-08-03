@@ -139,11 +139,11 @@ if(st_coord_sys$epsg != 4326){
  boundaries$lsoa_soton_leaflet <- st_transform(boundaries$lsoa_soton, "+proj=longlat +datum=WGS84")
 }
 
-# merge some of the LSOA labels to the boundaries so they can be in the map pop-up
-sf <- merge(boundaries$lsoa_soton_leaflet, data$lsoa_lookup_solent[, .(LSOA11CD, WD20CD, WD20NM)],
+# merge some of the LSOA labels to the boundaries so they can be in the map pop-ups
+soton_sf <- merge(boundaries$lsoa_soton_leaflet, data$lsoa_lookup_solent[, .(LSOA11CD, WD20CD, WD20NM)],
                                        by = "LSOA11CD")
 
-leaflet(sf) %>%
+leaflet(soton_sf) %>%
   addTiles() %>%  # Add default OpenStreetMap map tiles
   addPolygons(fillOpacity = 0.2, 
               weight = 1.5, 
@@ -200,18 +200,16 @@ These are LSOA level deprivation indices. Decile is the English & Welsh decile:
  * 10 = 10% least deprived LSOA in England & Wales.
 
 ```{r imdLSOAMap, fig.cap = "LSOA IMD map (shows LSOA, MSOA, ward names and IMD decile when clicked"}
-
-sf <- merge(boundaries$lsoa_soton_leaflet, data$lsoa_imd2019_soton[, .(LSOA11CD= lsoa11cd, IMDScore, IMD_Decile,IMD_Decile_label)],
+# merge to soton_sf to pick up ward names etc
+map_sf <- merge(soton_sf, data$lsoa_imd2019_soton[, .(LSOA11CD= lsoa11cd, IMDScore, IMD_Decile,IMD_Decile_label)],
                                        by = "LSOA11CD")
 
 
+colorPal <- colorNumeric("Reds", boundaries$lsoa_soton_leaflet$IMDScore, n = 9)
 
-
-colCats <- colorNumeric("Reds", boundaries$lsoa_soton_leaflet$IMDScore, n = 9)
-
-leaflet(add_sf_WD20NM(sf)) %>%
+m <- leaflet(map_sf) %>%
   addTiles() %>%  # Add default OpenStreetMap map tiles
-  addPolygons(color = ~colCats(IMDScore),
+  addPolygons(color = ~colorPal(IMDScore),
               fillOpacity = 0.6, 
               weight = 1.5, 
               popup = ~(paste0("LSOA: ",LSOA11NM,
@@ -226,6 +224,13 @@ leaflet(add_sf_WD20NM(sf)) %>%
                 fillOpacity = 0.8,
                 bringToFront = TRUE))
 
+m %>%
+    addLegend("bottomright", pal = colorPal, 
+              values = ~IMDScore,
+              title = "IMD score",
+              opacity = 0.6
+              )
+
 ```
 
 ### Fuel poverty
@@ -237,6 +242,38 @@ Source: https://www.gov.uk/government/statistics/sub-regional-fuel-poverty-data-
 
 ```{r loadBEISFP}
 data$lsoa_beis_fp <- data.table::fread(here::here("data", "LSOA_Fuel_Poverty_2019.csv.gz"))
+
+data$lsoa_beis_fp[, LSOA11CD := `LSOA Code`]
+
+map_sf <- merge(soton_sf, data$lsoa_beis_fp[, .(LSOA11CD, 
+                                                fp_pc = as.numeric(`Proportion of households fuel poor (%)`))],
+                                       by = "LSOA11CD")
+
+colorPal <- colorNumeric("Reds", map_sf$fp_pc, n = 9)
+
+m <- leaflet(map_sf) %>%
+  addTiles() %>%  # Add default OpenStreetMap map tiles
+  addPolygons(color = ~colorPal(fp_pc),
+              fillOpacity = 0.6, 
+              weight = 1.5, 
+              popup = ~(paste0("LSOA: ",LSOA11NM,
+                               "<br> MSOA: " , MSOA11NM,
+                               "<br> Ward: ", WD20NM,
+                               "<br> LA: ", LAD11NM,
+                               "<br> % fuel poor: ",fp_pc )
+                      ), # popups clicked
+              highlight = highlightOptions(
+                weight = 5,
+                color = "#666",
+                fillOpacity = 0.8,
+                bringToFront = TRUE))
+
+m %>%
+    addLegend("bottomright", pal = colorPal, 
+              values = ~fp_pc,
+              title = "% households fuel poor",
+              opacity = 0.6
+              )
 ```
 
 
@@ -421,7 +458,7 @@ head(t[order(-All_Tco2e_per_dw)])
 tail(t[order(-All_Tco2e_per_dw)])
 ```
 
-```{r mapIMDallCO2eperdw, fig.cap="Annual mean T CO2e per dwelling for all SouthamptonLSOAs"}
+```{r mapIMDallCO2eperdw, fig.cap="Annual mean T CO2e per dwelling for all Southampton LSOAs"}
 sf <- merge(boundaries$lsoa_soton_leaflet, t, by = "LSOA11CD")
 
 colorPal <- colorNumeric("Reds", t$All_Tco2e_per_dw, n = 10)

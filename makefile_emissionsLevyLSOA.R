@@ -4,6 +4,7 @@
 library(dkUtils) # see https://github.com/dataknut/dkUtils
 myLibs <- c("data.table",
             "here",
+            "sf",
             "skimr")
 
 dkUtils::loadLibraries(myLibs)
@@ -13,9 +14,9 @@ source(here::here("R", "functions.R"))
 
 makeReport <- function(filter){
   # > run report ----
-  rmdFile <- "simulating_local_emissions_levy_template" # not the full path
-  title = "Data notebook: Simulating a local emissions levy to fund local energy effiency retrofit"
-  subtitle <- paste0("Focus on: ", filter)
+  rmdFile <- "simulating_local_emissions_levy" # not the full path
+  title = "Simulating a local emissions levy to fund local energy efficiency retrofit"
+  subtitle <- paste0("Case study: ", filter)
   authors = "Ben Anderson"
   # default = html
   rmarkdown::render(input = paste0(here::here("rmd", rmdFile), ".Rmd"),
@@ -33,8 +34,53 @@ rParams <- list() # params used in this R script
 
 # load the datasets we use and do generic data processing here ----
 
+# > GIS boundaries ----
+
+message ("LSOA boundaries")
+boundaries <- list()
+boundaryPath <- path.expand("~/Library/CloudStorage/Dropbox/data/UK_boundaries/")
+boundaries$lsoa_2011 <- sf::read_sf(paste0(boundaryPath, "Lower_Layer_Super_Output_Areas_(December_2011)_Boundaries_Generalised_Clipped_(BGC)_EW_V3-shp",
+                                      "/Lower_Layer_Super_Output_Areas_(December_2011)_Boundaries_Generalised_Clipped_(BGC)_EW_V3.shp"))
+message("Rows of data: ", nrow(boundaries$lsoa_2011))
+
+st_coord_sys <- sf::st_crs(boundaries$lsoa_2011) # check coord system
+message("Boundary data co-ord system: ", st_coord_sys$epsg)
+# if required transform current coord system to EPSG: 4326 (is what leaflet wants - good)
+# do this once here and then re-use
+if(st_coord_sys$epsg != 4326){
+  boundaries$lsoa_2011_leaflet <- sf::st_transform(boundaries$lsoa_2011, "+proj=longlat +datum=WGS84")
+}
+
+boundaries$lsoa_2021 <- sf::read_sf(paste0(boundaryPath, "Lower_layer_Super_Output_Areas_2021_EW_BGC_V3_7972316521517759310",
+                                           "/LSOA_2021_EW_BGC_V3.shp"))
+message("Rows of data: ", nrow(boundaries$lsoa_2021))
+
+st_coord_sys <- sf::st_crs(boundaries$lsoa_2021) # check coord system
+message("Boundary data co-ord system: ", st_coord_sys$epsg)
+# if required transform current coord system to EPSG: 4326 (is what leaflet wants - good)
+# do this once here and then re-use
+if(st_coord_sys$epsg != 4326){
+  boundaries$lsoa_2021_leaflet <- sf::st_transform(boundaries$lsoa_2021, "+proj=longlat +datum=WGS84")
+}
+
+
 # > ONS LSOA lookups ----
-lsoa_lookup <- data.table::fread(paste0("~/Dropbox/data/UK_lookups/", "lsoa_lookup.csv.gz"))
+lsoa_lookup_2011 <- data.table::fread(paste0("~/Dropbox/data/UK_lookups/", "lsoa_lookup_2011.csv.gz"))
+
+# add to the boundaries for easy re-use
+boundaries$lsoa_2011_leaflet <- merge(boundaries$lsoa_2011_leaflet, lsoa_lookup_2011, 
+                                 by = c("LSOA11CD",
+                                        "LSOA11NM")
+                                 )
+names(boundaries$lsoa_2011_leaflet)
+
+lsoa_lookup_2021 <- data.table::fread(paste0("~/Dropbox/data/UK_lookups/", "Lower_Layer_Super_Output_Area_(2021)_to_Ward_(2022)_to_LAD_(2022)_Lookup_in_England_and_Wales_v3.csv"))
+
+boundaries$lsoa_2021_leaflet <- merge(boundaries$lsoa_2021_leaflet, lsoa_lookup_2021, 
+                                      by = c("LSOA21CD",
+                                             "LSOA21NM")
+                                      )
+names(boundaries$lsoa_2011_leaflet)
 
 # > ONS MSOA income (total) - small area estimates ----
 # Contents									
@@ -165,37 +211,40 @@ lsoa_2021_elec_ch[, c2021_pc_elec_ch_2021 := 100 * value/c2021_nhhs]
 
 # start from the lookup as it has all LSOAs/SOAs
 
-setkey(lsoa_lookup, MSOA11CD)
+setkey(lsoa_lookup_2011, MSOA11CD)
 
 # add MSOA income - this is England and Wales
 # this will duplicate total income across all LSOAs within each MSOA
-dt <- lsoa_lookup[, .(LSOA11CD, LSOA11NM, MSOA11CD, MSOA11NM, WD20CD, RUC11, 
+dt <- lsoa_lookup_2011[, .(LSOA11CD, LSOA11NM, MSOA11CD, MSOA11NM, WD20CD, WD20NM, RUC11, 
                       oacSuperGroupName = `Supergroup Name`, region = `Region/Country`)][msoa_income2018[, .(MSOA11CD, msoa_tot_annual_income_2018)]]
 table(dt$region)
 
-# add Census 2011 data
+# > add Census 2011 data ----
 setkey(dt, LSOA11CD)
 dt <- dt[lsoa_2011_tenure[, .(LSOA11CD, c2011_pc_social_rent, c2011_pc_private_rent, c2011_pc_owned)]]
 dt <- dt[lsoa_2011_acc_type[, .(LSOA11CD, c2011_detached, c2011_semi, c2011_terrace, c2011_flat,
                                 c2011_pc_detached, c2011_pc_semi, c2011_pc_terrace, c2011_pc_flat)]]
 
 
-# add IMD at LSOA level - this is only England
+# > add IMD at LSOA level - this is only England ----
 lsoa_imd2019[, LSOA11CD := lsoa11cd]
 setkey(lsoa_imd2019, LSOA11CD)
 
 dt <- dt[lsoa_imd2019]
 table(dt$region)
 
+# > add BEIS fuel poverty data ----
+setkey(dt, LSOA11CD)
+dt <- dt[lsoa_beis_fp[, .(LSOA11CD, `Number of households in fuel poverty1`, `Proportion of households fuel poor (%)`)]]
 
-# add energy data from BEIS (not via CREDS)
+# > add energy data from BEIS (not via CREDS) ----
 # gives meter counts
 
 # add so that all rows are kept
 dt <- energy_2018DT[dt]
 table(dt$region)
 
-# add CREDS data - also only England
+# > add CREDS data - also only England ----
 credsLsoaDT <- lsoa_creds_pbcc[, .(LAD11NM, WD18NM, LSOA11CD = LSOA11, 
                                         CREDS_total_kgco2e,CREDS_gas_kgco2e2018,CREDS_elec_kgco2e2018,
                                         CREDS_otherEnergy_kgco2e2011,CREDS_allHomeEnergy_kgco2e2011,
@@ -210,6 +259,7 @@ credsLsoaDT <- lsoa_creds_pbcc[, .(LAD11NM, WD18NM, LSOA11CD = LSOA11,
 
 setkey(credsLsoaDT, LSOA11CD)
 # keep only rows that match to CREDS (England)
+setkey(dt, LSOA11CD)
 mergedLSOA_Data_Eng <- dt[credsLsoaDT]
 nrow(mergedLSOA_Data_Eng)
 
@@ -221,19 +271,12 @@ head(mergedLSOA_Data_Eng[is.na(nElecMeters), .(LAD11NM, LSOA11CD, LSOA01NM, nEle
 # directly check LAs included (first 6 rows of table)
 head(table(mergedLSOA_Data_Eng$LAD11NM))
 
-# test linkage of Census 2021 data - suspect some LSOAs have changed
-
-sotonLSOA_DT <- mergedLSOA_Data_Eng[LAD11NM %like% "Southampton"]
-setkey(sotonLSOA_DT, LSOA11CD)
-setkey(lsoa_2021_elec_ch, LSOA21CD)
-test <- lsoa_2021_elec_ch[sotonLSOA_DT[, .(LSOA11CD, WD18NM, CREDS_pc_Heating_Electric_2011)]]
-summary(test) # NAs are LSOAs that didn't match
 library(ggplot2)
 ggplot2::ggplot(test, aes(x = CREDS_pc_Heating_Electric_2011 ,y = c2021_pc_elec_ch_2021)) +
   geom_point() +
   geom_abline(slope = 1, intercept = 0)
 
-#> check data ----
+# check data ----
 skimr::skim(mergedLSOA_Data_Eng)
 
 
@@ -248,25 +291,14 @@ head(mergedLSOA_Data_Eng[, .(type_house_detached, type_house_semi, type_house_mi
                              type_flat, type_maisonette, type_other)])
 
 # run the report
-# > set filter here ----
-# if it's "All English LSOAs" we don't filter
-# we could use a list of all LAs but that would take a while...
 
-# filterList <- c("Southampton","Newham", "Winchester","Portsmouth", "Eastleigh",
-#                 "Wight", "New Forest", "Havant")
-# 
-# for(filter in filterList){
-#   message("Filter: ", filter)
-#   rParams$filter <- filter # gets used in rmd
-#   makeReport(filter = filter)
-# }
-# 
 # makeReport(filter = "All English LSOAs")
 
-# makeReport(filter = "Southampton")
-# makeReport(filter = "Winchester")
-# makeReport(filter = "Islington")
-makeReport(filter = "East Suffolk")
-# makeReport(filter = "All English LSOAs")
+makeReport(filter = "East Suffolk") # East Suffolk did not exist in 2011
+makeReport(filter = "Portsmouth")
+makeReport(filter = "Southampton")
+makeReport(filter = "Winchester")
+
+# makeReport(filter = "All English LSOAs") # breaks!
 
 
