@@ -6,7 +6,7 @@ The model runs at the Census [Lower Layer Super Output Area](https://www.ons.gov
 
 Examples:
 
- * [East Suffolk](simulating_local_emissions_levy_East Suffolk.html)
+ * [East Suffolk](simulating_local_emissions_levy_East Suffolk.html) - **health warning: partial results due to incomplete LSOA/LA level data linkage**
  * [Portsmouth](simulating_local_emissions_levy_Portsmouth.html)
  * Southampton:
     * [Southampton](Anderson_2021_Simulating_local_emissions_levy_ICEC2021.html) City (as presented at [ICEC 2021](https://eprints.soton.ac.uk/451507/))
