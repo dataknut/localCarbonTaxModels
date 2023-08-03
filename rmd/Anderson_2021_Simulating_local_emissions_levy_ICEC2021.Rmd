@@ -421,27 +421,35 @@ head(t[order(-All_Tco2e_per_dw)])
 tail(t[order(-All_Tco2e_per_dw)])
 ```
 
-```{r mapIMDallCO2eperdw}
+```{r mapIMDallCO2eperdw, fig.cap="Annual mean T CO2e per dwelling for all SouthamptonLSOAs"}
 sf <- merge(boundaries$lsoa_soton_leaflet, t, by = "LSOA11CD")
 
-colCats <- colorNumeric("Reds", t$All_Tco2e_per_dw, n = 9)
+colorPal <- colorNumeric("Reds", t$All_Tco2e_per_dw, n = 10)
 
-leaflet(add_sf_WD20NM(sf)) %>%
+m <- leaflet(add_sf_WD20NM(sf)) %>%
   addTiles() %>%  # Add default OpenStreetMap map tiles
-  addPolygons(color = ~colCats(All_Tco2e_per_dw),
+  addPolygons(color = ~colorPal(All_Tco2e_per_dw),
+              smoothFactor = 0.2,
               fillOpacity = 0.6, 
               weight = 1.5, 
               popup = ~(paste0("LSOA: ",LSOA11NM,
                                "<br> Ward: ", WD20NM,
-                               "<br> T CO2e/dwelling: ", dkUtils::tidyNum(round(All_Tco2e_per_dw)))
+                               "<br> T CO2e/dwelling: ", dkUtils::tidyNum(All_Tco2e_per_dw,0))
                       ), # popups clicked
               highlight = highlightOptions(
                 weight = 5,
                 color = "#666",
                 fillOpacity = 0.8,
-                bringToFront = TRUE))
+                bringToFront = TRUE)
+              )
 
-
+m %>%
+    addLegend("bottomright", pal = colorPal, 
+              values = ~All_Tco2e_per_dw,
+              title = "Mean T Co2e",
+              labFormat = labelFormat(suffix = "T CO2e"),
+              opacity = 0.6
+              )
 
 
 ```
@@ -1155,7 +1163,7 @@ credsLsoaDT_sf <- merge(boundaries$lsoa_soton_leaflet, credsLsoaDT, by = "LSOA11
 
 colCats <- colorNumeric("Reds", credsLsoaDT_sf$retrofitSum, n = 9)
 
-leaflet(add_sf_WD20NM(credsLsoaDT_sf)) %>%
+m <- leaflet(add_sf_WD20NM(credsLsoaDT_sf)) %>%
   addTiles() %>%  # Add default OpenStreetMap map tiles
   addPolygons(color = ~colCats(retrofitSum),
               fillOpacity = 0.6, 
@@ -1174,6 +1182,13 @@ leaflet(add_sf_WD20NM(credsLsoaDT_sf)) %>%
                 bringToFront = TRUE))
 
 
+m %>%
+    addLegend("bottomright", pal = colCats, 
+              values = ~retrofitSum,
+              title = "Total retrofit cost (£)",
+              labFormat = labelFormat(prefix = "£"),
+              opacity = 0.6
+              )
 
 
 
