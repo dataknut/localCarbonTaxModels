@@ -146,7 +146,7 @@ Key results:
  * Table \@ref(tab:reportRetrofitCosts) shows total retrofit costs and Figure \@ref(fig:plotRetrofitCostsPerDwelling) shows the LSOA level retrofit costs per dwelling by IMD decile for comparison with Figure \@ref(fig:visIMDallCO2eperdw)
  * Figure \@ref(fig:allLevyPayOffSc1) shows the years to pay back under Scenario 1 for an all emissions levy while Figure \@ref(fig:allLevyPayOffSc2) does the same for Scenario 2
  * Figure \@ref(fig:transferVisAllSc1) shows what would happen after year 1 if the levy were shared equally across LSOAs (all emissions, Scenario 1) and Figure \@ref(fig:transferVisAllSc2) shows the same for Scenario 2.
- * Figure \@ref(fig:mapYearsToPaySc1_allemissions) maps the years to pay under Scenario 1
+ * Figure \@ref(fig:mapYearsToPaySc1Allemissions) maps the years to pay under Scenario 1
  * Figure \@ref(fig:comparePayBack) shows payback years under each Scenario assuming a constant all emissions levy
  
 
@@ -1823,7 +1823,7 @@ m <- median(selectedLsoasDT$yearsRequiredToPayRetrofit_beis_GBPtotal_c_perdw)
 message("Median years: ", round(m,2))
 ```
 
-```{r mapYearsToPaySc1_allemissions, fig.cap="Years to pay per LSOA (Scenbario 1, all emissions levy, no redistribution)"}
+```{r mapYearsToPaySc1Allemissions, fig.cap="Years to pay per LSOA (Scenbario 1, all emissions levy, no redistribution)"}
 map_sf <- merge(boundaries$lsoa_2011_leaflet, selectedLsoasDT[, .(LSOA11CD, 
                                                              y2p = yearsRequiredToPayRetrofit_beis_GBPtotal_c_perdw)], by = "LSOA11CD")
 
