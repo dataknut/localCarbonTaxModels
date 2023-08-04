@@ -833,8 +833,7 @@ m %>%
 
 ```
 
-
-## Estimating the annual emissions levy
+# Estimating the annual emissions levy
 
 Case studies:
 
@@ -860,7 +859,7 @@ BEIS Carbon ‘Value’ https://www.gov.uk/government/publications/valuing-green
 Scenario 1: apply the central value
 Scenario 2: apply the low/central/high as a rising block tariff for each emissions source. Set threhsolds to 33% and 66% (in absence of any other guidance!)
 
-### Scenario 1: Central carbon cost
+## Scenario 1: Central carbon cost
 
 ```{r estimateAnnualLevy_scenario1}
 # carbon costs
@@ -1088,7 +1087,7 @@ ggplot2::ggsave(paste0(rmdParams$plotPath, "BC_r1_Figure_7.jpg"))
 summary(selectedLsoasDT$beis_GBPtotal_c_energy_perdw)
 ```
 
-### Scenario 2: Rising block tariff
+## Scenario 2: Rising block tariff
 
 Applied  to per dwelling values (not LSOA total) - may be methodologically dubious?
 
@@ -1301,7 +1300,7 @@ ggplot2::ggplot(mt[variable != "nLSOAs"], aes(x = reorder(WD20NM, -value), y = v
 ```
 
 
-### Compare scenarios
+## Compare scenarios
 
 Figure \@ref(fig:compareScenariosBarAll) compares the % £ levy under each scenario for all consumption contributed by LSOAs in each IMD decile.
 
@@ -1742,7 +1741,7 @@ ggplot2::ggplot(selectedLsoasDT, aes(x = (beis_GBPtotal_c_gas_perdw + beis_GBPto
 #ggplot2::ggsave(filename = here::here("plots/allLSOAs_whoWins_RetrofitCost_beis_GBPtotal_energy_sc1_perdw.png"))
 ```
 
-### Scenario 2
+## Scenario 2
 
 Totals
 
