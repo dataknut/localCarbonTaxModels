@@ -465,7 +465,7 @@ Ideally we'd have Census 2021 data but we don't have it yet. So instead we'll us
 
 First check the n electricity meters logic...
 
-```{r check_nElecMeters}
+```{r checknElecMeters}
 # unallocated meters are in a row without a valid LSOA code
 # one very large count
 head(selectedLsoasDT[, .(LSOA11NM, WD18NM, nGasMeters, nElecMeters, epc_total)][order(-nGasMeters)])
@@ -905,37 +905,38 @@ m <- 1000000
 levy_Sc1_t <- selectedLsoasDT[, .(nLSOAs = .N, "All emissions" = sum(beis_GBPtotal_c)/m,
                      "Gas" = sum(beis_GBPtotal_c_gas)/m,
                      "Electricity" = sum(beis_GBPtotal_c_elec)/m)]
-makeFlexTable(levy_Sc1_t[order(-`All emissions`)], cap = "Total £m GBP levy by source (Scenario 2)")
+makeFlexTable(levy_Sc1_t[order(-`All emissions`)], cap = "Total £m GBP levy by source (Scenario 1)")
 
 
-t <- selectedLsoasDT[, .(nLSOAs = .N, beis_total_c = sum(beis_GBPtotal_c)/m,
-                     beis_total_c_gas = sum(beis_GBPtotal_c_gas)/m,
-                     beis_total_c_elec = sum(beis_GBPtotal_c_elec)/m), keyby = .(WD20NM)]
+t <- selectedLsoasDT[, .(nLSOAs = .N, "All emissions" = sum(beis_GBPtotal_c)/m,
+                     "Gas" = sum(beis_GBPtotal_c_gas)/m,
+                     "Electricity" = sum(beis_GBPtotal_c_elec)/m), keyby = .(WD20NM)]
 
-makeFlexTable(t[order(-beis_total_c)], cap = "Total £m GBP levy by source, ordered by highest emitting ward (Scenario 2)")
+makeFlexTable(t[order(-`All emissions`)], cap = "Total £m GBP levy by source, ordered by highest emitting ward (Scenario 1)")
+
+makeFlexTable(t[order(-`All emissions`)], cap = "Total £m GBP levy by source, ordered by highest emitting ward (Scenario 1)")
 
 mt <- melt(t)
-mt[, source := ifelse(variable == "beis_total_c", "All emissions", NA)]
-mt[, source := ifelse(variable == "beis_total_c_gas", "Gas emissions", source)]
-mt[, source := ifelse(variable == "beis_total_c_elec", "Electricity emissions", source)]
-ggplot2::ggplot(mt[variable != "nLSOAs"], aes(x = reorder(WD20NM, -value), y = value, fill = source)) +
+
+ggplot2::ggplot(mt[variable != "nLSOAs"], aes(x = reorder(WD20NM, -value), y = value, fill = variable)) +
   geom_col(position = "dodge") +
+  scale_fill_discrete(name = "Source") +
   labs(caption = capFilter) +
   labs(x = "Ward",
-       y = "£m") +
+       y = "Levy raised (£m)") +
   coord_flip()
 ```
 
 The table below shows the mean per dwelling value rounded to the nearest £10.
 
-```{r GBP_beis_c_perdw}
+```{r GBPBeisCperDwSc1}
 
 t <- selectedLsoasDT[, .(All_emissions = mean(beis_GBPtotal_c_perdw),
                      Gas = mean(beis_GBPtotal_c_gas_perdw),
                      Electricity = mean(beis_GBPtotal_c_elec_perdw),
                      `Gas + Electricity` = mean(beis_GBPtotal_c_energy_perdw))]
 
-makeFlexTable(t, cap = "Mean £ GBP levy per dwelling by source")
+makeFlexTable(t, cap = "Mean £ GBP levy per dwelling by source (Scenario 1)")
 
 ```
 
@@ -1012,9 +1013,9 @@ dt <- selectedLsoasDT[, .(LSOA11CD, LSOA01NM,WD18NM, gas_T_CO2e_pdw = CREDS_gas_
 
 
 t <- head(dt[order(-GBP_gas_levy_perdw)])
-makeFlexTable(t, cap = "Highest emitting by £ GBP gas levy")
+makeFlexTable(t, cap = "Highest emitting LSOAs by £ GBP gas levy")
 t <- tail(dt[order(-GBP_gas_levy_perdw)])
-makeFlexTable(t, cap = "Lowest emitting by £ GBP gas levy")
+makeFlexTable(t, cap = "Lowest emitting LSOAs by £ GBP gas levy")
 ```
 
 Figure \@ref(fig:whoWinsBEIScElec) repeats the analysis for electricity.
@@ -1052,9 +1053,9 @@ dt <- selectedLsoasDT[, .(LSOA11CD, LSOA01NM, WD18NM, elec_T_CO2e_pdw = CREDS_el
 
 
 t <- head(dt[order(-GBP_elec_levy_perdw)])
-makeFlexTable(t, cap = "Highest emitting by £ GBP electricity levy")
+makeFlexTable(t, cap = "Highest emitting LSOAs by £ GBP electricity levy")
 t <- tail(dt[order(-GBP_elec_levy_perdw)])
-makeFlexTable(t, cap = "Lowest emitting by £ GBP electricity levy")
+makeFlexTable(t, cap = "Lowest emitting LSOAs by £ GBP electricity levy")
 ```
 
 Figure \@ref(fig:whoWinsBEIScEnergy) shows the same analysis for measured energy (elec + gas)
@@ -1281,25 +1282,34 @@ levy_Sc2_t <- selectedLsoasDT[, .(nLSOAs = .N, "All emissions" = sum(beis_GBPtot
 makeFlexTable(levy_Sc2_t[order(-`All emissions`)], cap = "Total £m GBP levy by source (Scenario 2)")
 
 
-t <- selectedLsoasDT[, .(nLSOAs = .N, beis_total_c = sum(beis_GBPtotal_sc2)/m,
-                     beis_total_c_gas = sum(beis_GBPgas_sc2)/m,
-                     beis_total_c_elec = sum(beis_GBPelec_sc2)/m), keyby = .(WD20NM)]
+t <- selectedLsoasDT[, .(nLSOAs = .N, "All emissions" = sum(beis_GBPtotal_sc2)/m,
+                     "Gas" = sum(beis_GBPgas_sc2)/m,
+                     "Electricity" = sum(beis_GBPelec_sc2)/m), keyby = .(WD20NM)]
 
-makeFlexTable(t[order(-beis_total_c)], cap = "Total £m GBP levy by source, ordered by highest emitting ward (Scenario 2)")
+makeFlexTable(t[order(-`All emissions`)], cap = "Total £m GBP levy by source, ordered by highest emitting ward (Scenario 2)")
 
 mt <- melt(t)
-mt[, source := ifelse(variable == "beis_total_c", "All emissions", NA)]
-mt[, source := ifelse(variable == "beis_total_c_gas", "Gas emissions", source)]
-mt[, source := ifelse(variable == "beis_total_c_elec", "Electricity emissions", source)]
-ggplot2::ggplot(mt[variable != "nLSOAs"], aes(x = reorder(WD20NM, -value), y = value, fill = source)) +
+
+ggplot2::ggplot(mt[variable != "nLSOAs"], aes(x = reorder(WD20NM, -value), y = value, fill = variable)) +
   geom_col(position = "dodge") +
+  scale_fill_discrete(name = "Source") +
   labs(caption = capFilter) +
   labs(x = "Ward",
-       y = "£m") +
+       y = "Levy raised (£m)") +
   coord_flip()
 ```
 
+The table below shows the mean per dwelling value rounded to the nearest £10.
 
+```{r GBPBeisCperDwSc2}
+
+t <- selectedLsoasDT[, .(All_emissions = mean(beis_GBPtotal_sc2_c_perdw),
+                     Gas = mean(beis_GBPgas_sc2_perdw),
+                     Electricity = mean(beis_GBPelec_sc2_perdw))]
+
+makeFlexTable(t, cap = "Mean £ GBP levy per dwelling by source (Scenario 2)")
+
+```
 ## Compare scenarios
 
 Figure \@ref(fig:compareScenariosBarAll) compares the % £ levy under each scenario for all consumption contributed by LSOAs in each IMD decile.
