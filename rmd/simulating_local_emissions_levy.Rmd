@@ -194,8 +194,11 @@ table(mergedLSOA_Data_Eng$case_study)
 
 message("Number of selected LSOAs - merged data:")
 nrow(selectedLsoasDT)
-
+table(selectedLsoasDT$case_study, selectedLsoasDT$`Local Authority Name`)
 # selectedLsoasDT <- mergedLSOA_Data_Eng[LAD11NM %like% "East Suffolk"]
+
+# from here onwards refer to the full LA name
+# rmdParams$filter <- unique(selectedLsoasDT$`Local Authority Name`)
 
 # test linkage of Census 2021 data - suspect some LSOAs have changed
 message("Test linkage of Census 2021 data - suspect some LSOAs have changed")
@@ -1463,7 +1466,7 @@ These plots suggest:
  * Flats fairly well represented
  * Overall compared to the number of electricity meters, we have about 40% of the EPCs we should have
 
-In order to estimate the LSOA level retrofit costs, we need to impute the EPC counts in each LSOA. We do this using the number of electricity meters as the presumed number of dwellings and the observed % of EPCs in each band for all dwellings with EPCs which is provided by the CREDS data. We simnply upweight the EPC counts proportionally so that the total matches the number of electricity meters.
+In order to estimate the LSOA level retrofit costs, we need to impute the EPC counts in each LSOA. We do this using the number of electricity meters as the presumed number of dwellings and the observed % of EPCs in each band for all dwellings with EPCs which is provided by the CREDS data. We simply upweight the EPC counts proportionally so that the total matches the number of electricity meters.
 
 Note that this _assumes_ that if we had EPCs for all dwellings then the % in each band in each LSOA would stay the same. This is quite a bold assumption given what we have seen above but there is currently no way to re-weight them (e.g. to fit the dwelling type counts) with the data we have - we do not know the  of EPCs of each Band that come from different dwelling types.
 
@@ -1536,7 +1539,16 @@ ggplot2::ggplot(selectedLsoasDT, aes(x = IMDScore, y = epc_A_imp + epc_B_imp)) +
 
 ## Estimate costs - sheep dip D to G
 
-Upgrade all D-G
+Upgrade all D-G:
+
+ * upgrading A-E to 'acceptable standard': £13,300
+ * upgrading F-G to 'acceptable standard': £26,800
+ 
+Source: estimates of the cost of retrofitting dwellings in different EPC bands ‘to an appropriate standard’ published in a recent English Housing Survey technical report ([MHCLG 2018](https://www.gov.uk/government/statistics/english-housing-survey-2018-energy-report)) (see https://journal-buildingscities.org/articles/10.5334/bc.279#T2)
+
+The model does not upgrade A-C as it was assumed that dwellings in the least energy-efficient EPC bands (D–G) would be prioritised and that EPC bands A–C would not be retrofitted since they would already conform to the current UK policy objective of:
+
+> "as many homes as possible to achieve EPC band C by 2035 where cost-effective, practical and affordable, and to ensure as many fuel poor homes as reasonably practicable achieve a band C rating by the end of 2030." https://www.gov.uk/government/news/plan-to-drive-down-the-cost-of-clean-heat
 
 ```{r estRetrofitCosts}
 
