@@ -111,7 +111,7 @@ This report is based on a model presented at the 2021 [International Conference 
 
 If you are interested in how the model works start from  https://dataknut.github.io/localCarbonTaxModels/
 
-The model is similar on some ways to Evans et al (2023) *Getting to net zero: Islington’s social housing stock* (https://journal-buildingscities.org/articles/10.5334/bc.349) which estimated an overall cost of upgrading Islington's social housing stock of 4500 buildings containing some 33,300 dwellings. Estimated cost: £1,600m
+The model is similar in some respects to Evans et al (2023) *Getting to net zero: Islington’s social housing stock* (https://journal-buildingscities.org/articles/10.5334/bc.349) which estimated an overall cost of upgrading Islington's social housing stock of 4500 buildings containing some 33,300 dwellings to be £1,600m.
 
 ## Published versions
 
@@ -210,7 +210,13 @@ message("# NAs are LSOAs that didn't match - only matters to analysis using Cens
 
 ## Case study context
 
-This report takes `r rmdParams$filter` as a case study. Figure \@ref(fig:mapIMDLSOA) shows the distribution of deprivation across the case study area using the IMD 2019 data.
+This report takes `r rmdParams$filter` as a case study. 
+
+ * Number of households (Census 2021): `r dkUtils::tidyNum(sum(test$c2021_nhhs, na.rm = TRUE), round = 0)`
+ * Number of electricity meters (2018): `r dkUtils::tidyNum(sum(selectedLsoasDT$nElecMeters), round = 0)`
+  * Number of gas meters (2018): `r dkUtils::tidyNum(sum(selectedLsoasDT$nGasMeters), round = 0)`
+
+Figure \@ref(fig:mapIMDLSOA) shows the distribution of deprivation across the case study area using the IMD 2019 data.
 
 If there are gaps in these maps then there may be LSOA level data linking errors, possibly due to name or boundary changes. We love name and boundary changes. If so the model results may be partial. #YMMV
 
@@ -2127,9 +2133,24 @@ mt <- levyResByWard[retrofitCostsByWard]
 makeFlexTable(mt[order(-`Total retrofit cost (£m)`)], 
               cap = paste0("All results by ward (£m GBP, sorted by total retrofit cost): ", rParams$filter))
 
+modRes <- dkUtils::tidyNum(retrofitCostsTotal$`Total retrofit cost £m`, round = 2)
+
+if(rmdParams$filter %like% "Islington"){
+  t <- paste0("The model is similar in some respects to Evans et al (2023) *Getting to net zero: Islington’s social housing stock* (https://journal-buildingscities.org/articles/10.5334/bc.349) which estimated an overall cost of upgrading Islington's *social housing stock* (only) of 4500 buildings containing some 33,300 dwellings to be £1,600m, compared to this model's estimate of £", modRes, "m for *all* required dwellings.")
+} else {
+  t <- ""
+}
 ```
 
-`#YMMV`
+As a reminder:
+
+ * Number of households (Census 2021): `r dkUtils::tidyNum(sum(test$c2021_nhhs, na.rm = TRUE), round = 0)`
+ * Number of electricity meters (2018): `r dkUtils::tidyNum(sum(selectedLsoasDT$nElecMeters), round = 0)`
+ * Number of gas meters (2018): `r dkUtils::tidyNum(sum(selectedLsoasDT$nGasMeters), round = 0)`
+  
+`r t`
+
+As ever, `#YMMV`.
 
 # R environment
 
