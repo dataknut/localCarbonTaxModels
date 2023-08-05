@@ -318,15 +318,34 @@ head(mergedLSOA_Data_Eng[, .(type_house_detached, type_house_semi, type_house_mi
                              type_flat, type_maisonette, type_other)])
 
 # run the report
+# best if these exactly match the local authority name
+caseStudies <- c("Southampton",
+                 "Babergh",
+                 "Brighton and Hove",
+                 "East Suffolk", # East Suffolk did not exist in 2011 - data linkage glitches
+                 "East Hertfordshire",
+                 "Islington",
+                 "Portsmouth",
+                 "Mid Suffolk",
+                 "Lancaster",
+                 "Lewes",
+                 "Winchester"
+                 )
 
-# makeReport(filter = "All English LSOAs")
+runReport <- TRUE # just set up or run report too?
 
-makeReport(filter = "East Suffolk") # East Suffolk did not exist in 2011 - data linkage glitches
-makeReport(filter = "Islington")
-makeReport(filter = "Portsmouth")
-makeReport(filter = "Southampton")
-makeReport(filter = "Winchester")
-
+if(runReport){
+  for(c in caseStudies){
+    testDT <- mergedLSOA_Data_Eng[`Local Authority Name` %like% c]
+    nLSOAS <- nrow(testDT)
+    if(nLSOAS > 0){
+      message("Match for ", c, " (", unique(testDT$`Local Authority Name`), ") with ", nLSOAS, " LSOAs")
+      makeReport(filter = c) 
+    } else {
+      message("No match for ", c)
+    }
+  }
+}
 # makeReport(filter = "All English LSOAs") # breaks maps & plots!
 
 
