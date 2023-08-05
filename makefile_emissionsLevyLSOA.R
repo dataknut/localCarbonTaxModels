@@ -272,13 +272,40 @@ head(mergedLSOA_Data_Eng[is.na(nElecMeters), .(LAD11NM, LSOA11CD, LSOA01NM, nEle
 head(table(mergedLSOA_Data_Eng$LAD11NM))
 
 library(ggplot2)
-ggplot2::ggplot(test, aes(x = CREDS_pc_Heating_Electric_2011 ,y = c2021_pc_elec_ch_2021)) +
+setkey(lsoa_2021_elec_ch, LSOA21CD)
+setkey(mergedLSOA_Data_Eng, LSOA11CD)
+
+testDT <- lsoa_2021_elec_ch[mergedLSOA_Data_Eng] # there will be some non-matches
+testDT_merge <- merge(lsoa_2021_elec_ch[, .(LSOA21CD, c2021_pc_elec_ch_2021)], 
+                      mergedLSOA_Data_Eng[, .(LSOA11CD, CREDS_pc_Heating_Electric_2011)], 
+                      by.x = "LSOA21CD",
+                      by.y = "LSOA11CD",
+                      all = TRUE)
+
+head(testDT_merge[is.na(c2021_pc_elec_ch_2021)])
+
+testDT_merge[, flag := "LSOA in both"]
+testDT_merge[is.na(c2021_pc_elec_ch_2021), flag := "LSOA missing 2021"]
+testDT_merge[, c2021_pc_elec_ch_2021_fixed := c2021_pc_elec_ch_2021]
+testDT_merge[is.na(c2021_pc_elec_ch_2021), c2021_pc_elec_ch_2021_fixed := 0]
+
+testDT_merge[is.na(CREDS_pc_Heating_Electric_2011), flag := "LSOA missing 2011"]
+testDT_merge[, CREDS_pc_Heating_Electric_2011_fixed := CREDS_pc_Heating_Electric_2011]
+testDT_merge[is.na(CREDS_pc_Heating_Electric_2011), CREDS_pc_Heating_Electric_2011_fixed := 0]
+
+ggplot2::ggplot(testDT, aes(x = CREDS_pc_Heating_Electric_2011 ,
+                            y = c2021_pc_elec_ch_2021)) +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0)
+
+ggplot2::ggplot(testDT_merge, aes(x = CREDS_pc_Heating_Electric_2011_fixed,
+                            y = c2021_pc_elec_ch_2021_fixed,
+                            colour = flag)) +
   geom_point() +
   geom_abline(slope = 1, intercept = 0)
 
 # check data ----
 skimr::skim(mergedLSOA_Data_Eng)
-
 
 # check data
 
@@ -300,6 +327,6 @@ makeReport(filter = "Portsmouth")
 makeReport(filter = "Southampton")
 makeReport(filter = "Winchester")
 
-# makeReport(filter = "All English LSOAs") # breaks!
+# makeReport(filter = "All English LSOAs") # breaks maps & plots!
 
 
