@@ -294,7 +294,8 @@ head(mergedLSOA_Data_Eng[, .(type_house_detached, type_house_semi, type_house_mi
 
 # makeReport(filter = "All English LSOAs")
 
-makeReport(filter = "East Suffolk") # East Suffolk did not exist in 2011
+makeReport(filter = "East Suffolk") # East Suffolk did not exist in 2011 - data linkage glitches
+makeReport(filter = "Islington")
 makeReport(filter = "Portsmouth")
 makeReport(filter = "Southampton")
 makeReport(filter = "Winchester")
