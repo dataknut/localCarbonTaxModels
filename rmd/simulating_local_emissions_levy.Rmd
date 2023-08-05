@@ -111,7 +111,7 @@ This report is based on a model presented at the 2021 [International Conference 
 
 If you are interested in how the model works start from  https://dataknut.github.io/localCarbonTaxModels/
 
-The model is similar on some ways to Evans et al (2023) *Getting to net zero: Islington’s social housing stock* (https://journal-buildingscities.org/articles/10.5334/bc.349) which estimated an overall cost of upgrading Islington's social housing stock of 4500 buildings containing some 33,300 dwellings. Estimated cost: £1,600m
+The model is similar in some respects to Evans et al (2023) *Getting to net zero: Islington’s social housing stock* (https://journal-buildingscities.org/articles/10.5334/bc.349) which estimated an overall cost of upgrading Islington's social housing stock of 4500 buildings containing some 33,300 dwellings to be £1,600m.
 
 ## Published versions
 
@@ -210,7 +210,13 @@ message("# NAs are LSOAs that didn't match - only matters to analysis using Cens
 
 ## Case study context
 
-This report takes `r rmdParams$filter` as a case study. Figure \@ref(fig:mapIMDLSOA) shows the distribution of deprivation across the case study area using the IMD 2019 data.
+This report takes `r rmdParams$filter` as a case study. 
+
+ * Number of households (Census 2021): `r dkUtils::tidyNum(sum(test$c2021_nhhs, na.rm = TRUE), round = 0)`
+ * Number of electricity meters (2018): `r dkUtils::tidyNum(sum(selectedLsoasDT$nElecMeters), round = 0)`
+  * Number of gas meters (2018): `r dkUtils::tidyNum(sum(selectedLsoasDT$nGasMeters), round = 0)`
+
+Figure \@ref(fig:mapIMDLSOA) shows the distribution of deprivation across the case study area using the IMD 2019 data.
 
 If there are gaps in these maps then there may be LSOA level data linking errors, possibly due to name or boundary changes. We love name and boundary changes. If so the model results may be partial. #YMMV
 
@@ -465,7 +471,7 @@ Ideally we'd have Census 2021 data but we don't have it yet. So instead we'll us
 
 First check the n electricity meters logic...
 
-```{r check_nElecMeters}
+```{r checknElecMeters}
 # unallocated meters are in a row without a valid LSOA code
 # one very large count
 head(selectedLsoasDT[, .(LSOA11NM, WD18NM, nGasMeters, nElecMeters, epc_total)][order(-nGasMeters)])
@@ -565,6 +571,13 @@ makeFlexTable(t, cap = "Highest emitting LSOAs (per dwelling)")
 t <- head(dt[order(All_Tco2e_per_dw)])
 makeFlexTable(t, cap = "Lowest emitting LSOAs (per dwelling)")
 ```
+
+
+We should not be surprised that emissions are negatively correlated with deprivation. If you are, you should try reading an [excellent paper by Milena Buchs and Sylke Schnepf](https://doi.org/10.1016/j.ecolecon.2013.03.007), both formerly of the University of Southampton:
+
+> "whilst all types of emissions rise with income, low income, workless and elderly households are more likely to have high emissions from home energy than from other domains, suggesting that they may be less affected by carbon taxes on transport or total emissions. This demonstrates that fairness implications related to mitigation policies need to be examined for separate emission domains."
+
+With that in mind, read on.
 
 ```{r mapAllCO2eperdw, fig.cap="Annual mean T CO2e per dwelling (LSOAs)"}
 map_sf <- merge(boundaries$lsoa_2011_leaflet, selectedLsoasDT[, .(LSOA11CD,
@@ -833,8 +846,7 @@ m %>%
 
 ```
 
-
-## Estimating the annual emissions levy
+# Estimating the annual emissions levy
 
 Case studies:
 
@@ -860,7 +872,7 @@ BEIS Carbon ‘Value’ https://www.gov.uk/government/publications/valuing-green
 Scenario 1: apply the central value
 Scenario 2: apply the low/central/high as a rising block tariff for each emissions source. Set threhsolds to 33% and 66% (in absence of any other guidance!)
 
-### Scenario 1: Central carbon cost
+## Scenario 1: Central carbon cost
 
 ```{r estimateAnnualLevy_scenario1}
 # carbon costs
@@ -906,37 +918,38 @@ m <- 1000000
 levy_Sc1_t <- selectedLsoasDT[, .(nLSOAs = .N, "All emissions" = sum(beis_GBPtotal_c)/m,
                      "Gas" = sum(beis_GBPtotal_c_gas)/m,
                      "Electricity" = sum(beis_GBPtotal_c_elec)/m)]
-makeFlexTable(levy_Sc1_t[order(-`All emissions`)], cap = "Total £m GBP levy by source (Scenario 2)")
+makeFlexTable(levy_Sc1_t[order(-`All emissions`)], cap = "Total £m GBP levy by source (Scenario 1)")
 
 
-t <- selectedLsoasDT[, .(nLSOAs = .N, beis_total_c = sum(beis_GBPtotal_c)/m,
-                     beis_total_c_gas = sum(beis_GBPtotal_c_gas)/m,
-                     beis_total_c_elec = sum(beis_GBPtotal_c_elec)/m), keyby = .(WD20NM)]
+t <- selectedLsoasDT[, .(nLSOAs = .N, "All emissions" = sum(beis_GBPtotal_c)/m,
+                     "Gas" = sum(beis_GBPtotal_c_gas)/m,
+                     "Electricity" = sum(beis_GBPtotal_c_elec)/m), keyby = .(WD20NM)]
 
-makeFlexTable(t[order(-beis_total_c)], cap = "Total £m GBP levy by source, ordered by highest emitting ward (Scenario 2)")
+makeFlexTable(t[order(-`All emissions`)], cap = "Total £m GBP levy by source, ordered by highest emitting ward (Scenario 1)")
+
+makeFlexTable(t[order(-`All emissions`)], cap = "Total £m GBP levy by source, ordered by highest emitting ward (Scenario 1)")
 
 mt <- melt(t)
-mt[, source := ifelse(variable == "beis_total_c", "All emissions", NA)]
-mt[, source := ifelse(variable == "beis_total_c_gas", "Gas emissions", source)]
-mt[, source := ifelse(variable == "beis_total_c_elec", "Electricity emissions", source)]
-ggplot2::ggplot(mt[variable != "nLSOAs"], aes(x = reorder(WD20NM, -value), y = value, fill = source)) +
+
+ggplot2::ggplot(mt[variable != "nLSOAs"], aes(x = reorder(WD20NM, -value), y = value, fill = variable)) +
   geom_col(position = "dodge") +
+  scale_fill_discrete(name = "Source") +
   labs(caption = capFilter) +
   labs(x = "Ward",
-       y = "£m") +
+       y = "Levy raised (£m)") +
   coord_flip()
 ```
 
 The table below shows the mean per dwelling value rounded to the nearest £10.
 
-```{r GBP_beis_c_perdw}
+```{r GBPBeisCperDwSc1}
 
 t <- selectedLsoasDT[, .(All_emissions = mean(beis_GBPtotal_c_perdw),
                      Gas = mean(beis_GBPtotal_c_gas_perdw),
                      Electricity = mean(beis_GBPtotal_c_elec_perdw),
                      `Gas + Electricity` = mean(beis_GBPtotal_c_energy_perdw))]
 
-makeFlexTable(t, cap = "Mean £ GBP levy per dwelling by source")
+makeFlexTable(t, cap = "Mean £ GBP levy per dwelling by source (Scenario 1)")
 
 ```
 
@@ -1013,9 +1026,9 @@ dt <- selectedLsoasDT[, .(LSOA11CD, LSOA01NM,WD18NM, gas_T_CO2e_pdw = CREDS_gas_
 
 
 t <- head(dt[order(-GBP_gas_levy_perdw)])
-makeFlexTable(t, cap = "Highest emitting by £ GBP gas levy")
+makeFlexTable(t, cap = "Highest emitting LSOAs by £ GBP gas levy")
 t <- tail(dt[order(-GBP_gas_levy_perdw)])
-makeFlexTable(t, cap = "Lowest emitting by £ GBP gas levy")
+makeFlexTable(t, cap = "Lowest emitting LSOAs by £ GBP gas levy")
 ```
 
 Figure \@ref(fig:whoWinsBEIScElec) repeats the analysis for electricity.
@@ -1053,9 +1066,9 @@ dt <- selectedLsoasDT[, .(LSOA11CD, LSOA01NM, WD18NM, elec_T_CO2e_pdw = CREDS_el
 
 
 t <- head(dt[order(-GBP_elec_levy_perdw)])
-makeFlexTable(t, cap = "Highest emitting by £ GBP electricity levy")
+makeFlexTable(t, cap = "Highest emitting LSOAs by £ GBP electricity levy")
 t <- tail(dt[order(-GBP_elec_levy_perdw)])
-makeFlexTable(t, cap = "Lowest emitting by £ GBP electricity levy")
+makeFlexTable(t, cap = "Lowest emitting LSOAs by £ GBP electricity levy")
 ```
 
 Figure \@ref(fig:whoWinsBEIScEnergy) shows the same analysis for measured energy (elec + gas)
@@ -1088,7 +1101,7 @@ ggplot2::ggsave(paste0(rmdParams$plotPath, "BC_r1_Figure_7.jpg"))
 summary(selectedLsoasDT$beis_GBPtotal_c_energy_perdw)
 ```
 
-### Scenario 2: Rising block tariff
+## Scenario 2: Rising block tariff
 
 Applied  to per dwelling values (not LSOA total) - may be methodologically dubious?
 
@@ -1282,26 +1295,35 @@ levy_Sc2_t <- selectedLsoasDT[, .(nLSOAs = .N, "All emissions" = sum(beis_GBPtot
 makeFlexTable(levy_Sc2_t[order(-`All emissions`)], cap = "Total £m GBP levy by source (Scenario 2)")
 
 
-t <- selectedLsoasDT[, .(nLSOAs = .N, beis_total_c = sum(beis_GBPtotal_sc2)/m,
-                     beis_total_c_gas = sum(beis_GBPgas_sc2)/m,
-                     beis_total_c_elec = sum(beis_GBPelec_sc2)/m), keyby = .(WD20NM)]
+t <- selectedLsoasDT[, .(nLSOAs = .N, "All emissions" = sum(beis_GBPtotal_sc2)/m,
+                     "Gas" = sum(beis_GBPgas_sc2)/m,
+                     "Electricity" = sum(beis_GBPelec_sc2)/m), keyby = .(WD20NM)]
 
-makeFlexTable(t[order(-beis_total_c)], cap = "Total £m GBP levy by source, ordered by highest emitting ward (Scenario 2)")
+makeFlexTable(t[order(-`All emissions`)], cap = "Total £m GBP levy by source, ordered by highest emitting ward (Scenario 2)")
 
 mt <- melt(t)
-mt[, source := ifelse(variable == "beis_total_c", "All emissions", NA)]
-mt[, source := ifelse(variable == "beis_total_c_gas", "Gas emissions", source)]
-mt[, source := ifelse(variable == "beis_total_c_elec", "Electricity emissions", source)]
-ggplot2::ggplot(mt[variable != "nLSOAs"], aes(x = reorder(WD20NM, -value), y = value, fill = source)) +
+
+ggplot2::ggplot(mt[variable != "nLSOAs"], aes(x = reorder(WD20NM, -value), y = value, fill = variable)) +
   geom_col(position = "dodge") +
+  scale_fill_discrete(name = "Source") +
   labs(caption = capFilter) +
   labs(x = "Ward",
-       y = "£m") +
+       y = "Levy raised (£m)") +
   coord_flip()
 ```
 
+The table below shows the mean per dwelling value rounded to the nearest £10.
 
-### Compare scenarios
+```{r GBPBeisCperDwSc2}
+
+t <- selectedLsoasDT[, .(All_emissions = mean(beis_GBPtotal_sc2_c_perdw),
+                     Gas = mean(beis_GBPgas_sc2_perdw),
+                     Electricity = mean(beis_GBPelec_sc2_perdw))]
+
+makeFlexTable(t, cap = "Mean £ GBP levy per dwelling by source (Scenario 2)")
+
+```
+## Compare scenarios
 
 Figure \@ref(fig:compareScenariosBarAll) compares the % £ levy under each scenario for all consumption contributed by LSOAs in each IMD decile.
 
@@ -1742,7 +1764,7 @@ ggplot2::ggplot(selectedLsoasDT, aes(x = (beis_GBPtotal_c_gas_perdw + beis_GBPto
 #ggplot2::ggsave(filename = here::here("plots/allLSOAs_whoWins_RetrofitCost_beis_GBPtotal_energy_sc1_perdw.png"))
 ```
 
-### Scenario 2
+## Scenario 2
 
 Totals
 
@@ -1823,6 +1845,9 @@ m <- median(selectedLsoasDT$yearsRequiredToPayRetrofit_beis_GBPtotal_c_perdw)
 message("Median years: ", round(m,2))
 ```
 
+
+Figure \@ref(fig:mapYearsToPaySc1Allemissions) maps the distribution of years to pay for all LSOAs in the case study.
+
 ```{r mapYearsToPaySc1Allemissions, fig.cap="Years to pay per LSOA (Scenbario 1, all emissions levy, no redistribution)"}
 map_sf <- merge(boundaries$lsoa_2011_leaflet, selectedLsoasDT[, .(LSOA11CD, 
                                                              y2p = yearsRequiredToPayRetrofit_beis_GBPtotal_c_perdw)], by = "LSOA11CD")
@@ -1871,15 +1896,15 @@ ggplot2::ggplot(selectedLsoasDT, aes(x = IMDScore,
   scale_size_continuous(name = "% Electric heating") +
   scale_color_viridis_d(name = "IMD Decile") +
   labs(y = "Years to pay off",
-       caption = paste0("BEIS central carbon cost, gas emissions levy\n(excludes LSOA with 0 gas)\n", capFilter))
+       caption = paste0("BEIS central carbon cost, energy emissions levy\n(excludes LSOA with 0 gas)\n", capFilter))
 #ggplot2::ggsave(filename = here::here("plots/allLSOAs_whoWins_yearsRequiredToPayRetrofit_beis_GBPtotal_energy_sc1_perdw.png"))
 m <- median(selectedLsoasDT$yearsRequiredToPayRetrofit_beis_GBPtotal_c_energy_perdw)
 message("Median years: ", round(m,2))
 ```
 
-Figure \@ref(fig:transferVisAllSc1) shows the year 1 outcome if levy is shared equally (all emissions levy).
+Figure \@ref(fig:sc1Y1surplusByLsoaAllEmissions) shows those LSOAs which would be in surplus (above the y = 0 line) after Year 1.
 
-```{r transferVisAllSc1, fig.cap="Year 1 outcome if levy is shared equally (all emissions levy)"}
+```{r sc1Y1surplusByLsoaAllEmissions, fig.cap="Surplus £ after year 1 for each LSOA (all emissions levy)"}
 plotDT <- selectedLsoasDT[, .(LSOA11CD, beis_GBPtotal_c, beis_GBPtotal_c_elec, beis_GBPtotal_c_gas, retrofitSum, WD18NM, IMD_Decile_label, IMDScore)]
 share_Y1_total_c <- sum(plotDT$beis_GBPtotal_c)/uniqueN(plotDT$LSOA11CD) # divide the year 1 levy equally
 share_Y1_energy_c <- (sum(plotDT$beis_GBPtotal_c_elec) + sum(plotDT$beis_GBPtotal_c_gas))/uniqueN(plotDT$LSOA11CD) # divide the year 1 levy equally
@@ -1889,30 +1914,6 @@ plotDT[, surplusY1_total_c := share_Y1_total_c - retrofitSum] # equal share
 
 plotDT[, surplusY1_energy_c := share_Y1_energy_c - retrofitSum]
 
-# Breaks if doing all England!!
-ggplot2::ggplot(plotDT, aes(x = reorder(LSOA11CD, -retrofitSum), fill = retrofitSum/1000000)) +
-  geom_col(aes(y = retrofitSum/1000000)) +
-  geom_point(aes(y = share_Y1_total_c/1000000, colour = "Levy Year 1")) +
-  theme(axis.text.x=element_blank(),
-        axis.ticks.x=element_blank()) +
-  scale_fill_continuous(name = "Retrofit cost (£M)") +
-  scale_color_discrete(name = "Levy Year 1 (£M)") +
-  facet_wrap(. ~ WD18NM, scales="free_x") +
-  labs(x = "LSOAs (ordered by retrofit cost)",
-       y = "£M",
-       caption = "BEIS central carbon cost, all emissions levy")
-# 
-ggplot2::ggsave(paste0(rmdParams$plotPath, "BC_r1_Figure_9.jpg"))
-
-# #ggplot2::ggsave(filename = here::here("plots/allLSOAs_transferVis_allEmissions_sc1.png"))
-
-#ggplot2::ggsave(filename = here::here("plots/allLSOAs_surplusVis_allEmissions_sc1.png"))
-
-t <- head(selectedLsoasDT[, .(LSOA11CD,LSOA11NM, WD18NM, retrofitSum,yearsToPay = yearsRequiredToPayRetrofit_beis_GBPtotal_c_energy_perdw, epc_D_pc, epc_E_pc, epc_F_pc, epc_G_pc)][order(-retrofitSum)],10)
-
-makeFlexTable(t, cap = "Highest retofit sum cost under Scenario 1")
-```
-```{r transferVisAllSc1_altVIs}
 ggplot2::ggplot(plotDT, aes(x = reorder(LSOA11CD, -retrofitSum), colour = IMD_Decile_label,
                             y = surplusY1_total_c/1000000)) +
                   geom_point() +
@@ -1925,10 +1926,9 @@ ggplot2::ggplot(plotDT, aes(x = reorder(LSOA11CD, -retrofitSum), colour = IMD_De
        caption = paste0("BEIS central carbon cost, all emissions levy", "\n", capFilter))
 ```
 
+Figure \@ref(fig:sc1Y1surplusByLsoaEnergyEmissions) shows the same distribution but for the energy emissions levy. Clearly there is a lower level of surplus due to the reduced levy value at LSOA level.
 
-Figure \@ref(fig:transferVisEnergSc1y) shows the year 1 outcome if levy is shared equally (energy emissions levy).
-
-```{r transferVisEnergSc1y, fig.cap="Year 1 outcome if levy is shared equally (energy emissions levy)"}
+```{r sc1Y1surplusByLsoaEnergyEmissions, fig.cap="Surplus £ after year 1 for each LSOA (energy levy)"}
 
 
 ggplot2::ggplot(plotDT, aes(x = reorder(LSOA11CD, -retrofitSum), colour = IMD_Decile_label,
@@ -1948,11 +1948,48 @@ ggplot2::ggplot(plotDT, aes(x = reorder(LSOA11CD, -retrofitSum), colour = IMD_De
 
 What happens in Year 2 totally depends on the rate of upgrades... given the supply chain & capacity issues it's likely that the levy would build up a substantial 'headroom' that could then be spent over time...
 
+Figure \@ref(fig:redistVisAllEmissionsSc1) shows the year 1 outcome at ward level if levy is shared equally across all LSOAs (all emissions levy - orange dots).
+
+```{r redistVisAllEmissionsSc1, fig.cap="Year 1 outcome if levy is shared equally (all emissions levy)"}
+
+
+# Breaks if doing all England!!
+ggplot2::ggplot(plotDT, aes(x = reorder(LSOA11CD, -retrofitSum), fill = retrofitSum/1000000)) +
+  geom_col(aes(y = retrofitSum/1000000)) +
+  geom_point(aes(y = share_Y1_total_c/1000000, colour = "Levy Year 1")) +
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()) +
+  scale_fill_continuous(name = "Retrofit cost (£M)") +
+  scale_color_discrete(name = "All emissions levy Year 1 (£M) \nif equally re-distributed") +
+  facet_wrap(. ~ WD18NM, scales="free_x") +
+  labs(x = "LSOAs (ordered by retrofit cost)",
+       y = "£M",
+       caption = "BEIS central carbon cost, all emissions levy (Scenario 1)")
+# 
+ggplot2::ggsave(paste0(rmdParams$plotPath, "BC_r1_Figure_9_sc1.jpg"))
+
+# #ggplot2::ggsave(filename = here::here("plots/allLSOAs_transferVis_allEmissions_sc1.png"))
+
+#ggplot2::ggsave(filename = here::here("plots/allLSOAs_surplusVis_allEmissions_sc1.png"))
+
+```
+
+```{r highestRetrofitCostSc1}
+t <- head(selectedLsoasDT[, .(LSOA = LSOA11CD, "LSOA name" = LSOA11NM, Ward = WD18NM, 
+                              `Retrofit cost £m` = retrofitSum/1000000,
+                              "Years to pay (all emissions levy)" = yearsRequiredToPayRetrofit_beis_GBPtotal_c_perdw, 
+                              "Years to pay (energy emissions levy)" = yearsRequiredToPayRetrofit_beis_GBPtotal_c_energy_perdw, 
+                              "% EPC D" = epc_D_pc*100, "% EPC E" =  epc_E_pc*100, 
+                              "% EPC F" = epc_F_pc*100, "% EPC G" = epc_G_pc*100)][order(-`Retrofit cost £m`)],10)
+makeFlexTable(t, cap = "Longest years to pay under Scenario 1 (sorted by total retrofit cost)")
+```
+
+
 ## Scenario 2
 
 Figure \@ref(fig:allLevyPayOffSc2) shows years to pay under Scenario 2 (all emissions)
 
-```{r allLevyPayOffSc2, fig.height=5, fig.cap="Years to pay under Scenario 2 (all em issions)"}
+```{r allLevyPayOffSc2, fig.height=5, fig.cap="Years to pay under Scenario 2 (all emissions)"}
 
 selectedLsoasDT[, yearsRequiredToPayRetrofit_beis_GBPtotal_sc2_perdw := retrofitMeanPerDw/beis_GBPtotal_sc2_perdw]
 summary(selectedLsoasDT$yearsRequiredToPayRetrofit_beis_GBPtotal_sc2_perdw)
@@ -1965,7 +2002,7 @@ ggplot2::ggplot(selectedLsoasDT, aes(x = IMDScore,
   scale_size_continuous(name = "% Electric heating") +
   scale_color_viridis_d(name = "IMD Decile") +
   labs(y = "Years to pay off",
-       caption = paste0("Rising block, all emissions levy",
+       caption = paste0("Rising block, all emissions levy (Scenario 10",
                         "\n", capFilter))
 #ggplot2::ggsave(filename = here::here("plots/allLSOAs_whoWins_yearsRequiredToPayRetrofit_beis_GBPtotal_sc2_perdw.png"))
 m <- median(selectedLsoasDT$yearsRequiredToPayRetrofit_beis_GBPtotal_sc2_perdw)
@@ -1977,7 +2014,7 @@ Figure \@ref(fig:energyLevyPayOffSc2) shows years to pay under Scenario 2 (energ
 ```{r energyLevyPayOffSc2, fig.height=5, fig.cap="Years to pay under Scenario 2 (energy emissions)"}
 selectedLsoasDT[, yearsRequiredToPayRetrofit_beis_GBPtotal_sc2_energy_perdw := retrofitMeanPerDw/(beis_GBPgas_sc2_perdw + beis_GBPelec_sc2_perdw)]
 
-summary(selectedLsoasDT$yearsRequiredToPayRetrofit_beis_GBPtotal_c_energy_perdw)
+summary(selectedLsoasDT$yearsRequiredToPayRetrofit_beis_GBPtotal_sc2_energy_perdw)
 
 ggplot2::ggplot(selectedLsoasDT, aes(x = IMDScore, 
                             y = yearsRequiredToPayRetrofit_beis_GBPtotal_sc2_energy_perdw)) +
@@ -1994,9 +2031,9 @@ ggplot2::ggplot(selectedLsoasDT, aes(x = IMDScore,
 
 ```
 
-Figure \@ref(fig:transferVisAllSc2) shows the year 1 outcome if levy is shared equally (all emissions levy).
+Figure \@ref(fig:sc2Y1surplusByLsoaAllEmissions) shows those LSOAs which would be in surplus (above the y = 0 line) after Year 1.
 
-```{r transferVisAllSc2, fig.cap="Year 1 outcome if levy is shared equally (all emissions levy)"}
+```{r sc2Y1surplusByLsoaAllEmissions, fig.cap="Surplus £ after year 1 for each LSOA (Scenario 2, all emissions levy)"}
 plotDT <- selectedLsoasDT[, .(LSOA11CD, beis_GBPtotal_sc2, beis_GBPelec_sc2, beis_GBPgas_sc2, retrofitSum, WD18NM, IMDScore, IMD_Decile_label)]
 share_Y1_total_sc2 <- sum(plotDT$beis_GBPtotal_sc2)/uniqueN(plotDT$LSOA11CD) # divide the year 1 levy equally
 share_Y1_energy_sc2 <- (sum(plotDT$beis_GBPelec_sc2) + sum(plotDT$beis_GBPgas_sc2))/uniqueN(plotDT$LSOA11CD) # divide the year 1 levy equally
@@ -2022,9 +2059,9 @@ ggplot2::ggplot(plotDT, aes(x = reorder(LSOA11CD, -retrofitSum), colour = IMD_De
 
 ```
 
-Figure \@ref(fig:transferVisEnergySc2) shows the year 1 outcome if levy is shared equally (energy emissions levy).
+Figure \@ref(fig:sc2Y1surplusByLsoaEnergyEmissions) shows the same distribution for the Scenario 2 energy levy.
 
-```{r transferVisEnergySc2, fig.cap="Year 1 outcome if levy is shared equally (energy emissions levy)"}
+```{r sc2Y1surplusByLsoaEnergyEmissions, fig.cap="Surplus £ after year 1 for each LSOA (Scenario 2, all emissions levy)"}
 ggplot2::ggplot(plotDT, aes(x = reorder(LSOA11CD, -retrofitSum), colour = IMD_Decile_label,
                             y = surplusY1_energy_sc2/1000000)) +
                   geom_point() +
@@ -2034,7 +2071,7 @@ ggplot2::ggplot(plotDT, aes(x = reorder(LSOA11CD, -retrofitSum), colour = IMD_De
   scale_color_discrete(name = "IMD decile") +
   labs(x = "LSOAs (ordered by retrofit cost)",
        y = "Year 1 surplus (£M)",
-       caption = paste0("Rising block, energy emissions levy",
+       caption = paste0("Scenario 2, energy emissions levy",
                         "\n", capFilter))
 #ggplot2::ggsave(filename = here::here("plots/allLSOAs_surplusVis_energyEmissions_sc2.png"))
 
@@ -2042,6 +2079,43 @@ ggplot2::ggplot(plotDT, aes(x = reorder(LSOA11CD, -retrofitSum), colour = IMD_De
 ```
 
 What happens in Year 2 totally depends on the rate of upgrades...
+
+Figure \@ref(fig:redistVisAllEmissionsSc2) shows the year 1 outcome at ward level if levy is shared equally across all LSOAs (all emissions levy - orange dots).
+
+```{r redistVisAllEmissionsSc2, fig.cap="Year 1 outcome if levy is shared equally (Scenario 2, all emissions levy)"}
+
+# Breaks if doing all England!!
+ggplot2::ggplot(plotDT, aes(x = reorder(LSOA11CD, -retrofitSum), fill = retrofitSum/1000000)) +
+  geom_col(aes(y = retrofitSum/1000000)) +
+  geom_point(aes(y = share_Y1_total_sc2/1000000, colour = "Levy Year 1")) +
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()) +
+  scale_fill_continuous(name = "Retrofit cost (£M)") +
+  scale_color_discrete(name = "All emissions levy Year 1 (£M) \nif equally re-distributed") +
+  facet_wrap(. ~ WD18NM, scales="free_x") +
+  labs(x = "LSOAs (ordered by retrofit cost)",
+       y = "£M",
+       caption = "BEIS central carbon cost, all emissions levy (Scenario 2)")
+# 
+ggplot2::ggsave(paste0(rmdParams$plotPath, "BC_r1_Figure_9_sc2.jpg"))
+
+# #ggplot2::ggsave(filename = here::here("plots/allLSOAs_transferVis_allEmissions_sc1.png"))
+
+#ggplot2::ggsave(filename = here::here("plots/allLSOAs_surplusVis_allEmissions_sc1.png"))
+
+```
+
+
+```{r highestRetrofitCostSc2}
+t <- head(selectedLsoasDT[, .(LSOA = LSOA11CD, "LSOA name" = LSOA11NM, Ward = WD18NM, 
+                              `Retrofit cost £m` = retrofitSum/1000000,
+                              "Years to pay (all emissions levy)" = yearsRequiredToPayRetrofit_beis_GBPtotal_sc2_perdw, 
+                              "Years to pay (energy emissions levy)" = yearsRequiredToPayRetrofit_beis_GBPtotal_sc2_energy_perdw, 
+                              "% EPC D" = epc_D_pc*100, "% EPC E" =  epc_E_pc*100, 
+                              "% EPC F" = epc_F_pc*100, "% EPC G" = epc_G_pc*100)][order(-`Retrofit cost £m`)],10)
+makeFlexTable(t, cap = "Longest years to pay under Scenario 2 (sorted by total retrofit cost)")
+```
+
 
 ## Compare scenarios
 
@@ -2066,9 +2140,9 @@ ggplot2::ggsave(paste0(rmdParams$plotPath, "BC_r1_Figure_11.jpg"))
 
 ```
 
-# Summary {#resultsSummary}
+# Summary: `r rmdParams$filter` {#resultsSummary}
 
-Table \@ref(tab:summaryLevyResults) shows the summary overall levy value results by Scenario.
+Table \@ref(tab:summaryLevyResults) shows the summary overall levy value results for `r rmdParams$filter` by Scenario.
 
 ```{r summaryLevyResults}
 
@@ -2082,7 +2156,7 @@ t <- rbind(levy_Sc1_t,levy_Sc2_t)
 makeFlexTable(t[, .(`Scenario`, `nLSOAs`, 
                     "All emissions levy" = `All emissions`, 
                     "Gas emissions levy" = `Gas`, 
-                    "Electricity emissions levy" = `Electricity`)], cap = paste0("Levy total (Year 1 £m GBP): ", rParams$filter))
+                    "Electricity emissions levy" = `Electricity`)], cap = paste0("Levy total (Year 1 £m GBP): ", rmdParams$filter))
 
 levy_t1 <- selectedLsoasDT[, .(nLSOAs = .N, "All emissions levy (£m, Scenario 1)" = sum(beis_GBPtotal_c)/mil,
                      "Gas emissions levy (£m, Scenario 1)" = sum(beis_GBPtotal_c_gas)/mil,
@@ -2095,19 +2169,35 @@ levyResByWard <- levy_t1[levy_t2]
 
 ```
 
-Table \@ref(tab:summaryRetrofitCostResults) shows the summary overall retrofit cost results.
+Table \@ref(tab:summaryRetrofitCostResults) shows the summary overall retrofit cost results for `r rmdParams$filter`.
 
 ```{r summaryRetrofitCostResults}
 retrofitCostsTotal <- selectedLsoasDT[, .(`Total retrofit cost £m` = sum(retrofitSum)/mil,
                                           `Mean total retrofit cost £m per LSOA` = mean(retrofitSum)/mil
                                           )
                                       ]
-makeFlexTable(retrofitCostsTotal, cap = paste0("Retrofit cost totals (£m GBP): ", rParams$filter))
+makeFlexTable(retrofitCostsTotal, cap = paste0("Retrofit cost totals (£m GBP): ", rmdParams$filter))
 
 retrofitCostsByWard <- selectedLsoasDT[, .(`Total retrofit cost (£m)` = sum(retrofitSum)/mil, 
                                            `Mean total retrofit cost per LSOA (£m)` = mean(retrofitSum)/mil), 
                                        keyby = .(Ward = WD18NM)]
+
+modRes <- dkUtils::tidyNum(retrofitCostsTotal$`Total retrofit cost £m`, round = 2)
+
+if(rmdParams$filter %like% "Islington"){
+  t <- paste0("The model is similar in some respects to Evans et al (2023) *Getting to net zero: Islington’s social housing stock* (https://journal-buildingscities.org/articles/10.5334/bc.349) which estimated an overall cost of upgrading Islington's *social housing stock* (only) of 4500 buildings containing some 33,300 dwellings to be £1,600m, compared to this model's estimate of £", modRes, "m for *all* required dwellings.")
+} else {
+  t <- ""
+}
 ```
+
+As a reminder:
+
+ * Number of households (Census 2021): `r dkUtils::tidyNum(sum(test$c2021_nhhs, na.rm = TRUE), round = 0)`
+ * Estimated number of domestic electricity meters (2018): `r dkUtils::tidyNum(sum(selectedLsoasDT$nElecMeters), round = 0)`
+ * Estimated number of domestic gas meters (2018): `r dkUtils::tidyNum(sum(selectedLsoasDT$nGasMeters), round = 0)`
+  
+`r t`
 
 The following table (Table \@ref(tab:megaTable)) summarises all results by ward.
 
@@ -2118,9 +2208,12 @@ mt <- levyResByWard[retrofitCostsByWard]
 makeFlexTable(mt[order(-`Total retrofit cost (£m)`)], 
               cap = paste0("All results by ward (£m GBP, sorted by total retrofit cost): ", rParams$filter))
 
+
 ```
 
-`#YMMV`
+
+
+As ever, `#YMMV`.
 
 # R environment
 
